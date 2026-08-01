@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pokédex Real</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark">⚡</span>
+          <div>
+            <small>Minha coleção</small>
+            <h1>Biblioteca TCG</h1>
+          </div>
+        </div>
+        <nav class="nav">
+          <a href="#biblioteca">Biblioteca</a>
+          <a href="#detalhes">Detalhes</a>
+          <a href="#resumo">Resumo</a>
+        </nav>
+      </header>
+
+      <main>
+        <section class="hero">
+          <div class="hero-copy">
+            <p class="tag">Coleção pessoal</p>
+            <h2>Os meus cards Pokémon em uma biblioteca única</h2>
+            <p>
+              Explore a minha coleção TCG, veja os tipos favoritos e acompanhe os detalhes de cada carta da minha biblioteca.
+            </p>
+            <div class="hero-actions">
+              <button class="primary-btn" onclick="document.getElementById('biblioteca').scrollIntoView({ behavior: 'smooth' })">
+                Ver biblioteca
+              </button>
+              <button class="secondary-btn" onclick="focusSearch()">
+                Buscar carta
+              </button>
+            </div>
+          </div>
+
+          <div class="hero-panel" id="resumo">
+            <div class="stat-card">
+              <span>Total</span>
+              <strong id="total-count">0</strong>
+            </div>
+            <div class="stat-card">
+              <span>Capturados</span>
+              <strong id="captured-count">0</strong>
+            </div>
+            <div class="stat-card">
+              <span>Favoritos</span>
+              <strong id="favorite-count">0</strong>
+            </div>
+            <div class="stat-card">
+              <span>Tipos</span>
+              <strong id="types-count">0</strong>
+            </div>
+          </div>
+        </section>
+
+        <section class="library-section" id="biblioteca">
+          <div class="toolbar">
+            <div class="search-wrap">
+              <span>🔎</span>
+              <input id="search-input" type="text" placeholder="Buscar carta..." aria-label="Buscar carta" />
+            </div>
+
+            <div class="filter-group" id="filter-group" aria-label="Filtros de tipo">
+              <button class="filter-btn active" data-type="Todos">Todos</button>
+              <button class="filter-btn" data-type="Elétrico">Elétrico</button>
+              <button class="filter-btn" data-type="Fogo">Fogo</button>
+              <button class="filter-btn" data-type="Água">Água</button>
+              <button class="filter-btn" data-type="Planta">Planta</button>
+              <button class="filter-btn" data-type="Psiquico">Psiquico</button>
+              <button class="filter-btn" data-type="Dragão">Dragão</button>
+              <button class="filter-btn" data-type="Normal">Normal</button>
+              <button class="filter-btn" data-type="Metal">Metal</button>
+            </div>
+          </div>
+
+          <div class="content-grid">
+            <div class="pokemon-grid" id="pokemon-grid"></div>
+
+            <aside class="detail-panel" id="detalhes">
+              <div id="pokemon-detail" class="pokemon-detail empty">
+                <p>Selecione um Pokémon para ver mais detalhes.</p>
+              </div>
+            </aside>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>
