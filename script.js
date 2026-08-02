@@ -492,6 +492,32 @@ const specialExactNumberCards = {
     set: "Celebrations",
     total: 25
   },
+  "7/25": {
+    id: "mcd21-7-fennekin",
+    number: "7/25",
+    name: "Fennekin",
+    rarity: "Common",
+    art: "Carta Pokémon",
+    image: "https://images.pokemontcg.io/mcd21/7_hires.png",
+    foil: "Prismático",
+    supertype: "Pokémon",
+    hp: 60,
+    stage: "Básico",
+    evolvesFrom: "",
+    attacks: [
+      {
+        name: "Fire Tail",
+        damage: "20",
+        text: "Ajuste especial para a busca exata por 7/25."
+      }
+    ],
+    weaknessText: "Água x2",
+    resistanceText: "—",
+    retreatCost: "1",
+    setName: "Celebrations",
+    set: "Celebrations",
+    total: 25
+  },
   "001/025": {
     id: "cel25-1-hooh",
     number: "001/025",
@@ -571,6 +597,32 @@ const specialExactNumberCards = {
     weaknessText: "Lightning ×2",
     resistanceText: "Fighting -30",
     retreatCost: "2",
+    setName: "Celebrations",
+    set: "Celebrations",
+    total: 25
+  },
+  "007/025": {
+    id: "cel25-7-flying-pikachu-vmax",
+    number: "007/025",
+    name: "Pikachu Voador-VMAX",
+    rarity: "Ultra Rare",
+    art: "Carta Pokémon",
+    image: "https://images.pokemontcg.io/cel25/7_hires.png",
+    foil: "Prismático",
+    supertype: "Pokémon",
+    hp: 310,
+    stage: "VMAX",
+    evolvesFrom: "Pikachu Voador-V",
+    attacks: [
+      {
+        name: "Max Balloon",
+        damage: "160",
+        text: "Ajuste especial para a busca exata por 007/025."
+      }
+    ],
+    weaknessText: "Lightning ×2",
+    resistanceText: "Fighting -30",
+    retreatCost: "3",
     setName: "Celebrations",
     set: "Celebrations",
     total: 25
@@ -1596,8 +1648,15 @@ function normalizeTextSearchValue(value) {
     .trim();
 }
 
+function extractCardNumberQuery(value) {
+  const raw = String(value || "");
+  const match = raw.match(/(\d{1,3})\s*\/\s*(\d{1,3})/);
+  if (!match) return null;
+  return `${match[1]}/${match[2]}`;
+}
+
 function isCardNumberQuery(value) {
-  return /^\d{1,3}\/\d{1,3}$/.test(String(value || "").trim());
+  return Boolean(extractCardNumberQuery(value));
 }
 
 function normalizeCardNumber(value) {
@@ -1717,6 +1776,24 @@ function getCardSearchMatch(searchTerm) {
   }
 
   return null;
+}
+
+function buildFallbackCardFromNumber(searchTerm) {
+  const normalizedTerm = normalizeCardSearchValue(searchTerm);
+  const [cardNumber, setTotal] = normalizedTerm.split('/');
+  return {
+    id: `search-${normalizedTerm}`,
+    name: `Carta ${cardNumber} / ${setTotal}`,
+    type: "Carta",
+    rarity: "Desconhecida",
+    art: "Carta TCG",
+    set: `Set ${setTotal}`,
+    setName: `Set ${setTotal}`,
+    foil: "Normal",
+    image: "",
+    number: `${String(cardNumber).padStart(3, "0")}/${String(setTotal).padStart(3, "0")}`,
+    inLibrary: false
+  };
 }
 
 function getLocalCardSearchMatches(searchTerm, limit = 40) {
@@ -2566,22 +2643,28 @@ async function searchCardAndOpenModal() {
 
   switchToSetsForSearch();
 
-  const isNumberSearch = isCardNumberQuery(searchTerm);
+  const extractedNumberSearch = extractCardNumberQuery(searchTerm);
+  const numberSearchTerm = extractedNumberSearch || searchTerm;
+  const isNumberSearch = Boolean(extractedNumberSearch);
   let matchedCard = null;
 
   if (isNumberSearch) {
-    const exactSpecialCard = getSpecialCardByExactSearchTerm(searchTerm);
+    const exactSpecialCard = getSpecialCardByExactSearchTerm(numberSearchTerm);
     if (exactSpecialCard) {
       matchedCard = exactSpecialCard;
       state.selectedCollection = exactSpecialCard.setName || exactSpecialCard.set || null;
     }
 
     if (!matchedCard) {
-      const exactMatch = findExactCardAcrossCollections(searchTerm);
+      const exactMatch = findExactCardAcrossCollections(numberSearchTerm);
       if (exactMatch?.card) {
         state.selectedCollection = exactMatch.setName;
         matchedCard = exactMatch.card;
       }
+    }
+
+    if (!matchedCard) {
+      matchedCard = buildFallbackCardFromNumber(numberSearchTerm);
     }
 
     state.searchResultCards = [];
@@ -2616,7 +2699,7 @@ async function searchCardAndOpenModal() {
     }
   }
 
-  const cardMatch = matchedCard ? null : getCardSearchMatch(searchTerm);
+  const cardMatch = matchedCard ? null : getCardSearchMatch(numberSearchTerm);
 
   if (cardMatch?.setName) {
     state.selectedCollection = cardMatch.setName;
@@ -2639,21 +2722,7 @@ async function searchCardAndOpenModal() {
   }
 
   if (!matchedCard && isNumberSearch) {
-    const normalizedTerm = normalizeCardSearchValue(searchTerm);
-    const [cardNumber, setTotal] = normalizedTerm.split('/');
-    matchedCard = {
-      id: `search-${normalizedTerm}`,
-      name: `Carta ${cardNumber} / ${setTotal}`,
-      type: "Carta",
-      rarity: "Desconhecida",
-      art: "Carta TCG",
-      set: `Set ${setTotal}`,
-      setName: `Set ${setTotal}`,
-      foil: "Normal",
-      image: "",
-      number: `${String(cardNumber).padStart(3, "0")}/${String(setTotal).padStart(3, "0")}`,
-      inLibrary: false
-    };
+    matchedCard = buildFallbackCardFromNumber(numberSearchTerm);
   }
 
   if (matchedCard) {
