@@ -284,6 +284,32 @@ const specialSetCards = {
 };
 
 const specialExactNumberCards = {
+  "2/25": {
+    id: "mcd21-2-chikorita",
+    number: "2/25",
+    name: "Chikorita",
+    rarity: "Common",
+    art: "Carta Pokémon",
+    image: "https://images.pokemontcg.io/mcd21/2_hires.png",
+    foil: "Prismático",
+    supertype: "Pokémon",
+    hp: 50,
+    stage: "Básico",
+    evolvesFrom: "",
+    attacks: [
+      {
+        name: "Leaf Seed",
+        damage: "10",
+        text: "Ajuste especial para a busca exata por 2/25."
+      }
+    ],
+    weaknessText: "Fogo x2",
+    resistanceText: "—",
+    retreatCost: "1",
+    setName: "Celebrations",
+    set: "Celebrations",
+    total: 25
+  },
   "1/25": {
     id: "cel25-1",
     number: "1/25",
@@ -306,6 +332,32 @@ const specialExactNumberCards = {
     weaknessText: "Fogo x2",
     resistanceText: "—",
     retreatCost: "1",
+    setName: "Celebrations",
+    set: "Celebrations",
+    total: 25
+  },
+  "002/025": {
+    id: "cel25-2-reshiram",
+    number: "002/025",
+    name: "Reshiram",
+    rarity: "Holo Rare",
+    art: "Carta Pokémon",
+    image: "https://images.pokemontcg.io/cel25/2_hires.png",
+    foil: "Prismático",
+    supertype: "Pokémon",
+    hp: 130,
+    stage: "Básico",
+    evolvesFrom: "",
+    attacks: [
+      {
+        name: "Blue Flame",
+        damage: "130",
+        text: "Ajuste especial para a busca exata por 002/025."
+      }
+    ],
+    weaknessText: "Water ×2",
+    resistanceText: "—",
+    retreatCost: "2",
     setName: "Celebrations",
     set: "Celebrations",
     total: 25
