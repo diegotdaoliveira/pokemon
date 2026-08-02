@@ -1747,22 +1747,27 @@ function buildAnySequenceCardFor25(searchTerm) {
   const setTotal = Number(rawTotal);
 
   if (!Number.isFinite(cardNumber) || !Number.isFinite(setTotal)) return null;
-  if (setTotal !== 25 || cardNumber < 1 || cardNumber > 25) return null;
+  if (cardNumber < 1 || setTotal < 1) return null;
 
   const hasLeadingZeros = rawCard.length >= 3 || rawTotal.length >= 3 || rawCard.startsWith("0") || rawTotal.startsWith("0");
-  const preferCelebrations = hasLeadingZeros || cardNumber === 25;
+  const isTwentyFiveSet = setTotal === 25;
+  const isCardInTwentyFiveRange = cardNumber >= 1 && cardNumber <= 25;
+  const preferCelebrations = isTwentyFiveSet && (hasLeadingZeros || cardNumber === 25);
+  const useSpecial25Image = isTwentyFiveSet && isCardInTwentyFiveRange;
   const setCode = preferCelebrations ? "cel25" : "mcd21";
-  const formattedNumber = preferCelebrations
-    ? `${String(cardNumber).padStart(3, "0")}/025`
-    : `${cardNumber}/25`;
+  const formattedNumber = isTwentyFiveSet
+    ? (preferCelebrations ? `${String(cardNumber).padStart(3, "0")}/025` : `${cardNumber}/25`)
+    : (hasLeadingZeros
+        ? `${String(cardNumber).padStart(3, "0")}/${String(setTotal).padStart(3, "0")}`
+        : `${cardNumber}/${setTotal}`);
 
   return {
-    id: `${setCode}-${cardNumber}-auto`,
+    id: `${isTwentyFiveSet ? setCode : "search"}-${cardNumber}-${setTotal}-auto`,
     number: formattedNumber,
     name: `Carta ${formattedNumber}`,
     rarity: preferCelebrations ? "Holo Rare" : "Common",
     art: "Carta Pokémon",
-    image: `https://images.pokemontcg.io/${setCode}/${cardNumber}_hires.png`,
+    image: useSpecial25Image ? `https://images.pokemontcg.io/${setCode}/${cardNumber}_hires.png` : "",
     foil: preferCelebrations ? "Prismático" : "Normal",
     supertype: "Pokémon",
     hp: 100,
@@ -1772,9 +1777,9 @@ function buildAnySequenceCardFor25(searchTerm) {
     weaknessText: "—",
     resistanceText: "—",
     retreatCost: "1",
-    setName: "Celebrations",
-    set: "Celebrations",
-    total: 25,
+    setName: isTwentyFiveSet ? "Celebrations" : `Set ${setTotal}`,
+    set: isTwentyFiveSet ? "Celebrations" : `Set ${setTotal}`,
+    total: setTotal,
     inLibrary: false
   };
 }
