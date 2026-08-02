@@ -440,6 +440,32 @@ const specialExactNumberCards = {
     set: "Celebrations",
     total: 25
   },
+  "5/25": {
+    id: "mcd21-5-pikachu",
+    number: "5/25",
+    name: "Pikachu",
+    rarity: "Holo Rare",
+    art: "Carta Pokémon",
+    image: "https://images.pokemontcg.io/mcd21/5_hires.png",
+    foil: "Prismático",
+    supertype: "Pokémon",
+    hp: 60,
+    stage: "Básico",
+    evolvesFrom: "",
+    attacks: [
+      {
+        name: "Thunder Jolt",
+        damage: "30",
+        text: "Ajuste especial para a busca exata por 5/25."
+      }
+    ],
+    weaknessText: "Fogo x2",
+    resistanceText: "—",
+    retreatCost: "1",
+    setName: "Celebrations",
+    set: "Celebrations",
+    total: 25
+  },
   "001/025": {
     id: "cel25-1-hooh",
     number: "001/025",
@@ -467,6 +493,32 @@ const specialExactNumberCards = {
     weaknessText: "Water ×2",
     resistanceText: "Fighting -30",
     retreatCost: "2",
+    setName: "Celebrations",
+    set: "Celebrations",
+    total: 25
+  },
+  "005/025": {
+    id: "cel25-5-pikachu",
+    number: "005/025",
+    name: "Pikachu",
+    rarity: "Holo Rare",
+    art: "Carta Pokémon",
+    image: "https://images.pokemontcg.io/cel25/5_hires.png",
+    foil: "Prismático",
+    supertype: "Pokémon",
+    hp: 60,
+    stage: "Básico",
+    evolvesFrom: "",
+    attacks: [
+      {
+        name: "Thunder Jolt",
+        damage: "30",
+        text: "Ajuste especial para a busca exata por 005/025."
+      }
+    ],
+    weaknessText: "Fogo x2",
+    resistanceText: "—",
+    retreatCost: "1",
     setName: "Celebrations",
     set: "Celebrations",
     total: 25
