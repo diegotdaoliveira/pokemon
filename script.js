@@ -770,8 +770,18 @@ const specialExactNumberCards = {
 };
 
 function getSpecialCardByExactNumber(setName, rawNumber) {
-  if (!setName || !rawNumber) return null;
-  return specialSetCards[setName]?.[rawNumber] || null;
+  const exactNumber = normalizeExactCardNumber(rawNumber);
+  if (!exactNumber) return null;
+
+  const candidateSetNames = setName ? [setName] : Object.keys(specialSetCards);
+  for (const candidateSetName of candidateSetNames) {
+    const card = specialSetCards[candidateSetName]?.[exactNumber];
+    if (card) {
+      return { ...card, setName: candidateSetName, inLibrary: false, number: card.number || exactNumber };
+    }
+  }
+
+  return null;
 }
 
 function getSpecialCardByExactSearchTerm(rawSearchTerm) {
@@ -1438,29 +1448,42 @@ async function searchOfficialCardByExactNumber(searchTerm) {
   const normalizedTerm = normalizeCardSearchValue(searchTerm);
   if (!normalizedTerm) return null;
 
-  if (officialExactCardCache.has(normalizedTerm)) {
-    return officialExactCardCache.get(normalizedTerm);
+  const cacheKey = `official:${normalizedTerm}`;
+  if (officialExactCardCache.has(cacheKey)) {
+    return officialExactCardCache.get(cacheKey);
   }
 
-  const match = normalizedTerm.match(/^(\d{1,3})\/(\d{1,3})$/);
-  if (!match) return null;
+  const rawSearch = String(searchTerm || "").trim();
+  const explicitQuery = normalizeExactCardNumber(rawSearch);
+  const exactQueries = [explicitQuery];
 
-  const targetNumber = Number(match[1]);
-  const targetTotal = Number(match[2]);
+  const numericMatch = rawSearch.match(/^(\d+)\/(\d+)$/);
+  if (numericMatch) {
+    const numericNumber = numericMatch[1].padStart(3, "0");
+    const numericTotal = numericMatch[2].padStart(3, "0");
+    const paddedQuery = `${numericNumber}/${numericTotal}`;
+    if (paddedQuery !== explicitQuery) {
+      exactQueries.push(paddedQuery);
+    }
+  }
 
-  async function fetchCardByIdWithRetry(cardId, retries = 2) {
+  const uniqueQueries = [...new Set(exactQueries.filter(Boolean))];
+  const results = [];
+
+  async function fetchCardsForSetWithRetry(setId, retries = 2) {
     for (let attempt = 0; attempt <= retries; attempt += 1) {
       try {
-        const byIdResponse = await fetch(`https://api.pokemontcg.io/v2/cards/${cardId}`);
-        if (!byIdResponse.ok) continue;
-        const byIdPayload = await byIdResponse.json();
-        if (byIdPayload?.data) return byIdPayload.data;
+        const bySetResponse = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${setId}&pageSize=250`);
+        if (!bySetResponse.ok) continue;
+        const bySetPayload = await bySetResponse.json();
+        const cards = Array.isArray(bySetPayload?.data) ? bySetPayload.data : [];
+        if (cards.length) return cards;
       } catch (error) {
         // tenta novamente
       }
     }
 
-    return null;
+    return [];
   }
 
   try {
@@ -1478,56 +1501,78 @@ async function searchOfficialCardByExactNumber(searchTerm) {
       }
     }
 
-    const candidateSets = (officialSetsCache || []).filter((set) => {
-      const total = Number(set.total) || 0;
-      const printedTotal = Number(set.printedTotal) || 0;
-      return total === targetTotal || printedTotal === targetTotal;
-    }).sort((left, right) => {
-      const leftPrinted = Number(left.printedTotal) === targetTotal ? 1 : 0;
-      const rightPrinted = Number(right.printedTotal) === targetTotal ? 1 : 0;
-      if (leftPrinted !== rightPrinted) return rightPrinted - leftPrinted;
+    for (const query of uniqueQueries) {
+      const queryParts = query.split("/");
+      const targetNumber = Number(queryParts[0]) || 0;
+      const targetTotal = Number(queryParts[1]) || 0;
+      const targetNumberString = String(targetNumber).padStart(3, "0");
+      const targetTotalString = String(targetTotal).padStart(3, "0");
 
-      const leftRelease = Date.parse(left.releaseDate || "1970-01-01");
-      const rightRelease = Date.parse(right.releaseDate || "1970-01-01");
-      return rightRelease - leftRelease;
-    });
+      const queryCandidates = [
+        query,
+        `${targetNumberString}/${targetTotalString}`,
+        `${targetNumber}/${targetTotal}`
+      ].filter(Boolean);
 
-    for (const set of candidateSets) {
-      let card = null;
+      const candidateSets = (officialSetsCache || []).filter((set) => {
+        const total = Number(set.total) || 0;
+        const printedTotal = Number(set.printedTotal) || 0;
+        return total === targetTotal || printedTotal === targetTotal;
+      }).sort((left, right) => {
+        const leftPrinted = Number(left.printedTotal) === targetTotal ? 1 : 0;
+        const rightPrinted = Number(right.printedTotal) === targetTotal ? 1 : 0;
+        if (leftPrinted !== rightPrinted) return rightPrinted - leftPrinted;
 
-      const idCandidates = [`${set.id}-${targetNumber}`, `${set.id}-${String(targetNumber).padStart(3, "0")}`];
-      for (const cardId of idCandidates) {
-        card = await fetchCardByIdWithRetry(cardId, 2);
-        if (card) break;
-      }
+        const leftRelease = Date.parse(left.releaseDate || "1970-01-01");
+        const rightRelease = Date.parse(right.releaseDate || "1970-01-01");
+        return rightRelease - leftRelease;
+      });
 
-      if (!card) {
-        try {
-          const cardsResponse = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${set.id}&pageSize=250`);
-          if (cardsResponse.ok) {
-            const cardsPayload = await cardsResponse.json();
-            card = (cardsPayload.data || []).find((item) => Number(item.number) === targetNumber);
+      for (const set of candidateSets) {
+        let card = null;
+        const cardsForSet = await fetchCardsForSetWithRetry(set.id, 2);
+
+        if (cardsForSet.length) {
+          card = cardsForSet.find((item) => {
+            const itemNumber = String(item.number || "").trim();
+            return queryCandidates.includes(itemNumber);
+          }) || cardsForSet.find((item) => {
+            const itemNumber = String(item.number || "").trim();
+            const itemBaseNumber = itemNumber.includes("/") ? itemNumber.split("/")[0] : itemNumber;
+            const queryBaseNumber = query.includes("/") ? query.split("/")[0] : query;
+            return itemBaseNumber === queryBaseNumber || itemBaseNumber === targetNumberString || itemBaseNumber === String(targetNumber);
+          }) || null;
+        }
+
+        if (!card) continue;
+
+        const formatted = formatApiCard(card, set.name);
+        results.push({
+          setName: set.name,
+          card: {
+            ...formatted,
+            number: query.includes("/") ? query : `${targetNumberString}/${targetTotalString}`,
+            total: targetTotal,
+            generated: false
           }
-        } catch (error) {
-          card = null;
-        }
+        });
       }
 
-      if (!card) continue;
+      if (results.length) break;
+    }
 
-      const formatted = formatApiCard(card, set.name);
-      const result = {
-        setName: set.name,
-        card: {
-          ...formatted,
-          number: `${String(targetNumber).padStart(3, "0")}/${String(targetTotal).padStart(3, "0")}`,
-          total: targetTotal,
-          generated: false
-        }
-      };
+    if (results.length) {
+      const uniqueResults = [];
+      const seen = new Set();
+      results.forEach((entry) => {
+        const key = `${entry.setName}:${entry.card?.id || entry.card?.number}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        uniqueResults.push(entry);
+      });
 
-      officialExactCardCache.set(normalizedTerm, result);
-      return result;
+      officialExactCardCache.set(cacheKey, uniqueResults);
+      return uniqueResults;
     }
 
     const fallbackSetIdPool = [
@@ -1541,36 +1586,45 @@ async function searchOfficialCardByExactNumber(searchTerm) {
     ];
 
     for (const setId of fallbackSetIdPool) {
-      const idCandidates = [`${setId}-${targetNumber}`, `${setId}-${String(targetNumber).padStart(3, "0")}`];
-      for (const cardId of idCandidates) {
-        const card = await fetchCardByIdWithRetry(cardId, 1);
-        if (!card) continue;
+      const cardsForSet = await fetchCardsForSetWithRetry(setId, 1);
+      if (!cardsForSet.length) continue;
 
-        const cardTotal = Number(card.set?.total) || 0;
-        const cardPrintedTotal = Number(card.set?.printedTotal) || 0;
-        if (cardTotal !== targetTotal && cardPrintedTotal !== targetTotal) continue;
+      const card = cardsForSet.find((item) => {
+        const itemNumber = String(item.number || "").trim();
+        const itemBaseNumber = itemNumber.includes("/") ? itemNumber.split("/")[0] : itemNumber;
+        return itemBaseNumber === targetNumberString || itemBaseNumber === String(targetNumber);
+      });
 
-        const formatted = formatApiCard(card, card.set?.name || setId);
-        const result = {
-          setName: formatted.setName || formatted.set,
-          card: {
-            ...formatted,
-            number: `${String(targetNumber).padStart(3, "0")}/${String(targetTotal).padStart(3, "0")}`,
-            total: targetTotal,
-            generated: false
-          }
-        };
+      if (!card) continue;
 
-        officialExactCardCache.set(normalizedTerm, result);
-        return result;
-      }
+      const cardTotal = Number(card.set?.total) || 0;
+      const cardPrintedTotal = Number(card.set?.printedTotal) || 0;
+      if (targetTotal && cardTotal !== targetTotal && cardPrintedTotal !== targetTotal) continue;
+
+      const formatted = formatApiCard(card, card.set?.name || setId);
+      results.push({
+        setName: formatted.setName || formatted.set,
+        card: {
+          ...formatted,
+          number: query.includes("/") ? query : `${targetNumberString}/${targetTotalString}`,
+          total: targetTotal,
+          generated: false
+        }
+      });
+      break;
+    }
+
+    if (results.length) {
+      officialExactCardCache.set(cacheKey, results);
+      return results;
     }
   } catch (error) {
-    return null;
+    return [];
   }
 
-  return null;
+  return [];
 }
+
 
 async function searchOfficialCardByName(searchTerm) {
   const normalizedText = normalizeTextSearchValue(searchTerm);
@@ -1695,10 +1749,34 @@ function getVisibleCollections() {
 }
 
 function normalizeCardSearchValue(value) {
+  const utils = window.cardSearchUtils;
+  if (utils?.normalizeCardSearchValue) {
+    return utils.normalizeCardSearchValue(value);
+  }
+
   return String(value || "")
+    .trim()
     .toLowerCase()
     .replace(/\s+/g, "")
-    .replace(/[^0-9/]/g, "");
+    .replace(/[^a-z0-9/]/g, "");
+}
+
+function normalizeCardNumberForComparison(value) {
+  const utils = window.cardSearchUtils;
+  if (utils?.normalizeCardNumberForComparison) {
+    return utils.normalizeCardNumberForComparison(value);
+  }
+
+  const raw = normalizeExactCardNumber(value || "");
+  if (!raw) return null;
+
+  const match = raw.match(/^([A-Za-z0-9]+)\s*\/\s*([A-Za-z0-9]+)$/);
+  if (!match) return null;
+
+  const left = match[1].replace(/^0+(?=\d)/, "");
+  const right = match[2].replace(/^0+(?=\d)/, "");
+
+  return `${left}/${right}`;
 }
 
 function normalizeTextSearchValue(value) {
@@ -1711,10 +1789,19 @@ function normalizeTextSearchValue(value) {
 }
 
 function extractCardNumberQuery(value) {
-  const raw = String(value || "");
-  const match = raw.match(/(\d{1,3})\s*\/\s*(\d{1,3})/);
-  if (!match) return null;
-  return `${match[1]}/${match[2]}`;
+  const raw = String(value || "").trim();
+  if (!raw) return null;
+
+  const cleaned = raw.replace(/\s+/g, "");
+  const slashMatch = cleaned.match(/([A-Za-z0-9]+\/[A-Za-z0-9]+)/);
+  if (slashMatch) {
+    return slashMatch[1];
+  }
+
+  const literalMatch = cleaned.match(/([A-Za-z0-9]+)/);
+  if (!literalMatch) return null;
+
+  return /\d/.test(literalMatch[1]) ? literalMatch[1] : null;
 }
 
 function getEffectiveSearchTerm(value) {
@@ -1733,7 +1820,10 @@ function getEffectiveSearchTerm(value) {
 }
 
 function isCardNumberQuery(value) {
-  return Boolean(extractCardNumberQuery(value));
+  const cleaned = normalizeExactCardNumber(value);
+  if (!cleaned) return false;
+  if (cleaned.includes("/")) return true;
+  return /\d/.test(cleaned) && /^[A-Za-z0-9]+$/.test(cleaned);
 }
 
 function buildAnySequenceCardFor25(searchTerm) {
@@ -1798,13 +1888,42 @@ function normalizeCardNumber(value) {
 }
 
 function normalizeExactCardNumber(value) {
-  return String(value || "")
-    .trim()
-    .replace(/\s+/g, "");
+  const utils = window.cardSearchUtils;
+  if (utils?.normalizeExactCardNumber) {
+    return utils.normalizeExactCardNumber(value);
+  }
+
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  const cleaned = raw.replace(/\s+/g, "");
+  if (!cleaned) return "";
+
+  const slashMatch = cleaned.match(/([A-Za-z0-9]+\/[A-Za-z0-9]+)/);
+  if (slashMatch) {
+    return slashMatch[1];
+  }
+
+  const literalMatch = cleaned.match(/([A-Za-z0-9]+)/);
+  return literalMatch ? literalMatch[1] : cleaned;
 }
 
 function isExactCardNumberMatch(leftValue, rightValue) {
+  const utils = window.cardSearchUtils;
+  if (utils?.isExactCardNumberMatch) {
+    return utils.isExactCardNumberMatch(leftValue, rightValue);
+  }
+
   return normalizeExactCardNumber(leftValue) === normalizeExactCardNumber(rightValue);
+}
+
+function isCardNumberEquivalent(leftValue, rightValue) {
+  const utils = window.cardSearchUtils;
+  if (utils?.isCardNumberEquivalent) {
+    return utils.isCardNumberEquivalent(leftValue, rightValue);
+  }
+
+  return normalizeCardSearchValue(leftValue) === normalizeCardSearchValue(rightValue);
 }
 
 function findExactCardAcrossCollections(searchTerm) {
@@ -1827,41 +1946,19 @@ function findCardByQuery(cards, searchTerm, setName = null) {
   const normalizedTextTerm = normalizeTextSearchValue(searchTerm);
   if (!normalizedTerm && !normalizedTextTerm) return null;
 
-  const directNumberMatch = normalizedTerm.match(/^(\d{1,3})\/(\d{1,3})$/);
-  if (directNumberMatch) {
-    const exactOverride = getSpecialCardByExactNumber(setName, normalizedTerm);
-    if (exactOverride) {
-      return {
-        ...exactOverride,
-        set: setName,
-        total: Number(directNumberMatch[2]),
-        inLibrary: false
-      };
-    }
+  const exactSearchTerm = normalizeExactCardNumber(searchTerm);
+  const exactOverride = getSpecialCardByExactNumber(setName, exactSearchTerm);
+  if (exactOverride) {
+    return {
+      ...exactOverride,
+      set: setName,
+      inLibrary: false
+    };
+  }
 
-    const [, cardNumber, total] = directNumberMatch;
-    const targetNumber = Number(cardNumber);
-    const targetTotal = Number(total);
-
-    const exactSearchTerm = normalizeExactCardNumber(searchTerm);
-
-    const exactLiteralItem = cards.find((item) => isExactCardNumberMatch(item.number, exactSearchTerm));
-    if (exactLiteralItem) {
-      return exactLiteralItem;
-    }
-
-    const exactItem = cards.find((item) => {
-      const itemNumber = normalizeCardSearchValue(item.number);
-      const itemMatch = itemNumber.match(/^(\d{1,3})\/(\d{1,3})$/);
-      if (!itemMatch) return false;
-      return Number(itemMatch[1]) === targetNumber && Number(itemMatch[2]) === targetTotal && isExactCardNumberMatch(item.number, exactSearchTerm);
-    });
-
-    if (exactItem) {
-      return exactItem;
-    }
-
-    return cards.find((item) => isExactCardNumberMatch(item.number, exactSearchTerm));
+  const exactLiteralItem = cards.find((item) => isExactCardNumberMatch(item.number, exactSearchTerm));
+  if (exactLiteralItem) {
+    return exactLiteralItem;
   }
 
   return cards.find((item) => {
@@ -1874,22 +1971,55 @@ function findCardByQuery(cards, searchTerm, setName = null) {
   });
 }
 
+function findNumberSearchMatches(searchTerm) {
+  const exactSearchTerm = normalizeExactCardNumber(searchTerm);
+  if (!exactSearchTerm) return [];
+
+  const normalizedSearchTerm = normalizeCardSearchValue(exactSearchTerm);
+  const scopeSets = state.selectedCollection ? [state.selectedCollection] : worldCollections;
+  const matches = [];
+  const seen = new Set();
+
+  const addMatch = (setName, card) => {
+    if (!card || !card.number) return;
+    const cardNumber = normalizeExactCardNumber(card.number);
+    const isExactNumberMatch = cardNumber === exactSearchTerm;
+    const isEquivalentNumberMatch = Boolean(
+      exactSearchTerm.includes("/")
+      && cardNumber.includes("/")
+      && !isExactNumberMatch
+      && normalizeCardNumberForComparison(cardNumber) === normalizeCardNumberForComparison(exactSearchTerm)
+    );
+    if (!isExactNumberMatch && !isEquivalentNumberMatch) return;
+
+    const key = `${setName}:${card.id || card.number}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+
+    matches.push({ setName, card });
+  };
+
+  const specialCard = getSpecialCardByExactNumber(null, exactSearchTerm);
+  if (specialCard) {
+    addMatch(specialCard.setName || specialCard.set || "Special", specialCard);
+  }
+
+  scopeSets.forEach((setName) => {
+    const cards = getCardsForSet(setName);
+    cards.forEach((card) => addMatch(setName, card));
+  });
+
+  return matches;
+}
+
 function getCardSearchMatch(searchTerm) {
+  const matches = findNumberSearchMatches(searchTerm);
+  if (matches.length) {
+    return matches[0];
+  }
+
   const normalizedTerm = normalizeCardSearchValue(searchTerm);
   if (!normalizedTerm) return null;
-
-  const directNumberMatch = normalizedTerm.match(/^(\d{1,3})\/(\d{1,3})$/);
-  if (directNumberMatch) {
-    const exactOverride = getSpecialCardByExactNumber(null, normalizedTerm);
-    if (exactOverride) {
-      return {
-        setName: exactOverride.setName || exactOverride.set || null,
-        card: exactOverride
-      };
-    }
-
-    return findExactCardAcrossCollections(searchTerm);
-  }
 
   for (const setName of worldCollections) {
     const cards = getCardsForSet(setName);
@@ -1906,17 +2036,21 @@ function getCardSearchMatch(searchTerm) {
 function buildFallbackCardFromNumber(searchTerm) {
   const normalizedTerm = normalizeCardSearchValue(searchTerm);
   const [cardNumber, setTotal] = normalizedTerm.split('/');
+  const normalizedNumber = String(cardNumber || "").padStart(3, "0");
+  const normalizedTotal = String(setTotal || "").padStart(3, "0");
+  const cardTitle = `${normalizedNumber}/${normalizedTotal}`;
+
   return {
     id: `search-${normalizedTerm}`,
-    name: `Carta ${cardNumber} / ${setTotal}`,
+    name: `Carta ${cardTitle}`,
     type: "Carta",
     rarity: "Desconhecida",
     art: "Carta TCG",
-    set: `Set ${setTotal}`,
-    setName: `Set ${setTotal}`,
+    set: `Set ${normalizedTotal}`,
+    setName: `Set ${normalizedTotal}`,
     foil: "Normal",
     image: "",
-    number: `${String(cardNumber).padStart(3, "0")}/${String(setTotal).padStart(3, "0")}`,
+    number: cardTitle,
     inLibrary: false
   };
 }
@@ -2760,6 +2894,7 @@ function switchToSetsForSearch() {
 async function searchCardAndOpenModal() {
   const requestId = ++latestSearchRequestId;
   const searchTerm = getEffectiveSearchTerm(state.currentSearch);
+  const currentSearchValue = String(state.currentSearch || "").trim();
   if (!searchTerm) {
     state.searchResultCards = [];
     renderCards();
@@ -2771,29 +2906,97 @@ async function searchCardAndOpenModal() {
   const extractedNumberSearch = extractCardNumberQuery(searchTerm);
   const numberSearchTerm = extractedNumberSearch || searchTerm;
   const isNumberSearch = Boolean(extractedNumberSearch);
+  const isLiteralNumberPattern = Boolean(extractedNumberSearch && /[A-Za-z]/.test(extractedNumberSearch));
   let matchedCard = null;
 
   if (isNumberSearch) {
-    const exactSpecialCard = getSpecialCardByExactSearchTerm(numberSearchTerm);
-    if (exactSpecialCard) {
-      matchedCard = exactSpecialCard;
-      state.selectedCollection = exactSpecialCard.setName || exactSpecialCard.set || null;
+    const officialNumberMatches = await searchOfficialCardByExactNumber(numberSearchTerm);
+    if (requestId !== latestSearchRequestId) return;
+
+    if (Array.isArray(officialNumberMatches) && officialNumberMatches.length > 1) {
+      state.searchResultCards = officialNumberMatches.map((entry) => ({
+        id: entry.card.id,
+        name: entry.card.name,
+        rarity: entry.card.rarity,
+        art: entry.card.art,
+        number: entry.card.number,
+        image: entry.card.image || "",
+        foil: entry.card.foil || "Normal",
+        setName: entry.setName || entry.card.set,
+        set: entry.setName || entry.card.set,
+        hp: entry.card.hp || 100,
+        stage: entry.card.stage || "",
+        level: entry.card.level || "",
+        evolvesFrom: entry.card.evolvesFrom || "",
+        attacks: Array.isArray(entry.card.attacks) ? entry.card.attacks : [],
+        weaknessText: entry.card.weaknessText || "",
+        resistanceText: entry.card.resistanceText || "",
+        retreatCost: entry.card.retreatCost || "",
+        inLibrary: Boolean(entry.card.inLibrary)
+      }));
+      state.selectedCollection = null;
+      state.selectedCollectionCard = null;
+      state.selectedPokemon = null;
+      renderCards();
+      renderDetail();
+      return;
     }
 
-    if (!matchedCard) {
-      const exactMatch = findExactCardAcrossCollections(numberSearchTerm);
-      if (exactMatch?.card) {
-        state.selectedCollection = exactMatch.setName;
-        matchedCard = exactMatch.card;
+    if (Array.isArray(officialNumberMatches) && officialNumberMatches.length === 1) {
+      const firstMatch = officialNumberMatches[0];
+      matchedCard = firstMatch.card;
+      state.selectedCollection = firstMatch.setName || firstMatch.card.set || null;
+    }
+
+    const numberMatches = findNumberSearchMatches(numberSearchTerm);
+    if (isLiteralNumberPattern && !matchedCard && !numberMatches.length) {
+      const localMatches = getLocalCardSearchMatches(numberSearchTerm, 12);
+      if (localMatches.length) {
+        state.searchResultCards = localMatches.map((card) => ({
+          ...card,
+          setName: card.setName || card.set,
+          set: card.set || card.setName
+        }));
+        state.selectedCollection = null;
+        state.selectedCollectionCard = null;
+        state.selectedPokemon = null;
+        renderCards();
+        renderDetail();
+        return;
       }
     }
-
-    if (!matchedCard) {
-      matchedCard = buildAnySequenceCardFor25(numberSearchTerm);
+    if (numberMatches.length > 1) {
+      state.searchResultCards = numberMatches.map(({ setName, card }) => ({
+        id: card.id,
+        name: card.name,
+        rarity: card.rarity,
+        art: card.art,
+        number: card.number,
+        image: card.image || "",
+        foil: card.foil || "Normal",
+        setName: setName || card.set,
+        set: setName || card.set,
+        hp: card.hp || 100,
+        stage: card.stage || "",
+        level: card.level || "",
+        evolvesFrom: card.evolvesFrom || "",
+        attacks: Array.isArray(card.attacks) ? card.attacks : [],
+        weaknessText: card.weaknessText || "",
+        resistanceText: card.resistanceText || "",
+        retreatCost: card.retreatCost || "",
+        inLibrary: Boolean(card.inLibrary)
+      }));
+      state.selectedCollection = null;
+      state.selectedCollectionCard = null;
+      state.selectedPokemon = null;
+      renderCards();
+      renderDetail();
+      return;
     }
 
-    if (!matchedCard) {
-      matchedCard = buildFallbackCardFromNumber(numberSearchTerm);
+    if (numberMatches.length === 1) {
+      matchedCard = numberMatches[0].card;
+      state.selectedCollection = numberMatches[0].setName || numberMatches[0].card.set || null;
     }
 
     state.searchResultCards = [];
@@ -2851,11 +3054,20 @@ async function searchCardAndOpenModal() {
   }
 
   if (!matchedCard && isNumberSearch) {
-    matchedCard = buildFallbackCardFromNumber(numberSearchTerm);
+    const fallbackCard = buildFallbackCardFromNumber(numberSearchTerm);
+    if (fallbackCard) {
+      fallbackCard.name = `Carta ${numberSearchTerm}`;
+      fallbackCard.description = `Carta TCG · ${numberSearchTerm}`;
+      fallbackCard.number = numberSearchTerm;
+      fallbackCard.setName = "Set desconhecido";
+      fallbackCard.set = "Set desconhecido";
+      matchedCard = fallbackCard;
+    }
   }
 
   if (matchedCard) {
     if (requestId !== latestSearchRequestId) return;
+    if (currentSearchValue && state.currentSearch !== currentSearchValue) return;
 
     const cardItem = {
       id: matchedCard.id,
@@ -2892,22 +3104,10 @@ async function searchCardAndOpenModal() {
 searchInput.addEventListener("input", (event) => {
   latestSearchRequestId += 1;
   state.currentSearch = event.target.value.trim();
-  state.searchResultCards = [];
 
   if (autoSearchTimeoutId) {
     clearTimeout(autoSearchTimeoutId);
     autoSearchTimeoutId = null;
-  }
-
-  if (isCardNumberQuery(state.currentSearch)) {
-    autoSearchTimeoutId = setTimeout(async () => {
-      if (searchInput.value.trim() !== state.currentSearch) return;
-      await searchCardAndOpenModal();
-    }, 350);
-  }
-
-  if (state.currentTab === "sets") {
-    renderCards();
   }
 });
 
