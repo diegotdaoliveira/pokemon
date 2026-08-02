@@ -466,6 +466,32 @@ const specialExactNumberCards = {
     set: "Celebrations",
     total: 25
   },
+  "6/25": {
+    id: "mcd21-6-chespin",
+    number: "6/25",
+    name: "Chespin",
+    rarity: "Common",
+    art: "Carta Pokémon",
+    image: "https://images.pokemontcg.io/mcd21/6_hires.png",
+    foil: "Prismático",
+    supertype: "Pokémon",
+    hp: 60,
+    stage: "Básico",
+    evolvesFrom: "",
+    attacks: [
+      {
+        name: "Vine Whip",
+        damage: "10",
+        text: "Ajuste especial para a busca exata por 6/25."
+      }
+    ],
+    weaknessText: "Fogo x2",
+    resistanceText: "—",
+    retreatCost: "1",
+    setName: "Celebrations",
+    set: "Celebrations",
+    total: 25
+  },
   "001/025": {
     id: "cel25-1-hooh",
     number: "001/025",
@@ -519,6 +545,32 @@ const specialExactNumberCards = {
     weaknessText: "Fogo x2",
     resistanceText: "—",
     retreatCost: "1",
+    setName: "Celebrations",
+    set: "Celebrations",
+    total: 25
+  },
+  "006/025": {
+    id: "cel25-6-flying-pikachu-v",
+    number: "006/025",
+    name: "Pikachu Voador-V",
+    rarity: "Ultra Rare",
+    art: "Carta Pokémon",
+    image: "https://images.pokemontcg.io/cel25/6_hires.png",
+    foil: "Prismático",
+    supertype: "Pokémon",
+    hp: 190,
+    stage: "Básico",
+    evolvesFrom: "",
+    attacks: [
+      {
+        name: "Flying Pikachu",
+        damage: "0",
+        text: "Ajuste especial para a busca exata por 006/025."
+      }
+    ],
+    weaknessText: "Lightning ×2",
+    resistanceText: "Fighting -30",
+    retreatCost: "2",
     setName: "Celebrations",
     set: "Celebrations",
     total: 25
@@ -844,6 +896,7 @@ const state = {
 };
 
 let latestSearchRequestId = 0;
+let autoSearchTimeoutId = null;
 const officialExactCardCache = new Map();
 let officialSetsCache = null;
 
@@ -2643,6 +2696,18 @@ searchInput.addEventListener("input", (event) => {
   state.currentSearch = event.target.value.trim();
   state.searchResultCards = [];
 
+  if (autoSearchTimeoutId) {
+    clearTimeout(autoSearchTimeoutId);
+    autoSearchTimeoutId = null;
+  }
+
+  if (isCardNumberQuery(state.currentSearch)) {
+    autoSearchTimeoutId = setTimeout(async () => {
+      if (searchInput.value.trim() !== state.currentSearch) return;
+      await searchCardAndOpenModal();
+    }, 350);
+  }
+
   if (state.currentTab === "sets") {
     renderCards();
   }
@@ -2651,6 +2716,10 @@ searchInput.addEventListener("input", (event) => {
 searchInput.addEventListener("keydown", async (event) => {
   if (event.key !== "Enter") return;
   event.preventDefault();
+  if (autoSearchTimeoutId) {
+    clearTimeout(autoSearchTimeoutId);
+    autoSearchTimeoutId = null;
+  }
   state.currentSearch = searchInput.value.trim();
   await searchCardAndOpenModal();
 });
