@@ -284,6 +284,32 @@ const specialSetCards = {
 };
 
 const specialExactNumberCards = {
+  "1/25": {
+    id: "cel25-1",
+    number: "1/25",
+    name: "Bulbasaur",
+    rarity: "Common",
+    art: "Carta Pokémon",
+    image: "https://images.pokemontcg.io/cel25/1_hires.png",
+    foil: "Prismático",
+    supertype: "Pokémon",
+    hp: 60,
+    stage: "Básico",
+    evolvesFrom: "",
+    attacks: [
+      {
+        name: "Folha Navalha",
+        damage: "30",
+        text: "Ajuste especial para a busca exata por 1/25."
+      }
+    ],
+    weaknessText: "Fogo x2",
+    resistanceText: "—",
+    retreatCost: "1",
+    setName: "Celebrations",
+    set: "Celebrations",
+    total: 25
+  },
   "025/165": {
     id: "sv3pt5-25",
     number: "025/165",
