@@ -32,89 +32,394 @@ const typeClassMap = {
   steel: "metal"
 };
 
-const worldCollections = [
-  "Base Set",
-  "Jungle",
-  "Fossil",
-  "Team Rocket",
-  "Gym Heroes",
-  "Gym Challenge",
-  "Wizards Black Star Promos",
-  "Neo Genesis",
-  "Neo Discovery",
-  "Neo Revelation",
-  "Neo Destiny",
-  "Crystal Guardians",
-  "Power Keepers",
-  "EX Ruby & Sapphire",
-  "EX Sandstorm",
-  "EX Dragon Frontiers",
-  "EX Team Magma vs Team Aqua",
-  "EX Hidden Legends",
-  "EX FireRed & LeafGreen",
-  "EX Emerald",
-  "EX Unseen Forces",
-  "Diamond & Pearl",
-  "Mysterious Treasures",
-  "Secret Wonders",
-  "Great Encounters",
-  "Legends Awakened",
-  "Platinum",
-  "Rising Rivals",
-  "Supreme Victors",
-  "Arceus",
-  "Black & White",
-  "Emerging Powers",
-  "Nimbasa City",
-  "Dragon Vault",
-  "Boundaries Crossed",
-  "Plasma Storm",
-  "Plasma Freeze",
-  "Plasma Blast",
-  "Legendary Treasures",
-  "XY",
-  "Kalos Starter Set",
-  "BREAKthrough",
-  "BREAKpoint",
-  "Fates Collide",
-  "Steam Siege",
-  "Guardians Rising",
-  "Burning Shadows",
-  "Crimson Invasion",
-  "Ultra Prism",
-  "Celestial Storm",
-  "Dragon Majesty",
-  "Forbidden Light",
-  "Sun & Moon",
-  "Unbroken Bonds",
-  "Team Up",
-  "Lost Thunder",
-  "Mysterious Mountains",
-  "Sword & Shield",
-  "Rebel Clash",
-  "Darkness Ablaze",
-  "Vivid Voltage",
-  "Astral Radiance",
-  "Lost Origin",
-  "Silver Tempest",
-  "Crown Zenith",
-  "Scarlet & Violet",
-  "Paldean Foes",
-  "Obsidian Flames",
-  "Temporal Forces",
-  "Twilight Masquerade",
-  "Shrouded Fable",
-  "Stellar Crown",
-  "Prismatic Evolutions",
-  "Pokemon GO",
-  "Celebrations",
-  "Pokemon Center Promo",
-  "Southern Islands",
-  "Raging Surf",
-  "Detective Pikachu",
-  "Hidden Fates",
-  "Evolving Skies"
-];
+const typeEffectiveness = {
+  normal: { rock: 0.5, ghost: 0, steel: 0.5 },
+  fire: { fire: 0.5, water: 0.5, grass: 2, ice: 2, bug: 2, rock: 0.5, dragon: 0.5, steel: 2 },
+  water: { fire: 2, water: 0.5, grass: 0.5, ground: 2, rock: 2, dragon: 0.5 },
+  electric: { water: 2, electric: 0.5, grass: 0.5, ground: 0, flying: 2, dragon: 0.5 },
+  grass: { fire: 0.5, water: 2, grass: 0.5, poison: 0.5, ground: 2, flying: 0.5, bug: 0.5, rock: 2, dragon: 0.5, steel: 0.5 },
+  ice: { fire: 0.5, water: 0.5, grass: 2, ice: 0.5, ground: 2, flying: 2, dragon: 2, steel: 0.5 },
+  fighting: { normal: 2, ice: 2, poison: 0.5, flying: 0.5, psychic: 0.5, bug: 0.5, rock: 2, ghost: 0, dark: 2, steel: 2, fairy: 0.5 },
+  poison: { grass: 2, poison: 0.5, ground: 0.5, rock: 0.5, ghost: 0.5, steel: 0, fairy: 2 },
+  ground: { fire: 2, electric: 2, grass: 0.5, poison: 2, flying: 0, bug: 0.5, rock: 2, steel: 2 },
+  flying: { electric: 0.5, grass: 2, fighting: 2, bug: 2, rock: 0.5, steel: 0.5 },
+  psychic: { fighting: 2, poison: 2, psychic: 0.5, dark: 0, steel: 0.5 },
+  bug: { fire: 0.5, fighting: 0.5, grass: 2, poison: 0.5, flying: 0.5, psychic: 2, ghost: 0.5, dark: 2, steel: 0.5, fairy: 0.5 },
+  rock: { fire: 2, ice: 2, fighting: 0.5, ground: 0.5, flying: 2, bug: 2, steel: 0.5 },
+  ghost: { normal: 0, psychic: 2, ghost: 2, dark: 0.5 },
+  dragon: { dragon: 2, steel: 0.5, fairy: 0 },
+  dark: { fighting: 0.5, psychic: 2, ghost: 2, dark: 0.5, fairy: 0.5 },
+  steel: { fire: 0.5, water: 0.5, electric: 0.5, ice: 2, rock: 2, steel: 0.5, fairy: 2 },
+  fairy: { fire: 0.5, fighting: 2, poison: 0.5, dragon: 2, dark: 2, steel: 0.5 }
+};
+
+function getTypeLabels(types = []) {
+  return (Array.isArray(types) ? types : [types]).filter(Boolean).map((type) => typeMap[type] || titleCase(type));
+}
+
+function getWeaknesses(types = []) {
+  const typeList = Array.isArray(types) ? types : [types].filter(Boolean);
+  const weaknessMap = {};
+
+  typeList.forEach((typeKey) => {
+    const multipliers = typeEffectiveness[typeKey] || {};
+    Object.entries(multipliers).forEach(([weakType, multiplier]) => {
+      if (Number(multiplier) >= 2) {
+        weaknessMap[weakType] = (weaknessMap[weakType] || 1) * Number(multiplier);
+      }
+    });
+  });
+
+  return Object.entries(weaknessMap)
+    .sort((left, right) => left[0].localeCompare(right[0]))
+    .map(([name, multiplier]) => ({
+      name: typeMap[name] || titleCase(name),
+      multiplier
+    }));
+}
+
+const collectionTranslations = {
+  "Base Set": "Conjunto Base",
+  "Jungle": "Selva",
+  "Fossil": "Fóssil",
+  "Team Rocket": "Time Rocket",
+  "Gym Heroes": "Heróis dos Ginásios",
+  "Gym Challenge": "Desafio dos Ginásios",
+  "Wizards Black Star Promos": "Promoções Black Star",
+  "Neo Genesis": "Neo Gênese",
+  "Neo Discovery": "Neo Descoberta",
+  "Neo Revelation": "Neo Revelação",
+  "Neo Destiny": "Neo Destino",
+  "Legendary Collection": "Coleção Lendária",
+  "Crystal Guardians": "Guardiões de Cristal",
+  "Power Keepers": "Guardiões do Poder",
+  "EX Ruby & Sapphire": "EX Rubi & Safira",
+  "EX Sandstorm": "EX Tempestade de Areia",
+  "EX Dragon Frontiers": "EX Fronteiras do Dragão",
+  "EX Team Magma vs Team Aqua": "EX Team Magma vs Team Aqua",
+  "EX Hidden Legends": "EX Lendas Ocultas",
+  "EX FireRed & LeafGreen": "EX FireRed & LeafGreen",
+  "EX Emerald": "EX Esmeralda",
+  "EX Unseen Forces": "EX Forças Invisíveis",
+  "Diamond & Pearl": "Diamante & Pérola",
+  "Mysterious Treasures": "Tesouros Misteriosos",
+  "Secret Wonders": "Maravilhas Secretas",
+  "Great Encounters": "Grandes Encontros",
+  "Legends Awakened": "Lendas Despertadas",
+  "Platinum": "Platina",
+  "Rising Rivals": "Rivais Ascendentes",
+  "Supreme Victors": "Vencedores Supremos",
+  "Arceus": "Arceus",
+  "Black & White": "Preto & Branco",
+  "Emerging Powers": "Poderes Emergentes",
+  "Nimbasa City": "Cidade de Nimbasa",
+  "Dragon Vault": "Cofre do Dragão",
+  "Boundaries Crossed": "Limites Cruzados",
+  "Plasma Storm": "Tempestade de Plasma",
+  "Plasma Freeze": "Congelamento de Plasma",
+  "Plasma Blast": "Explosão de Plasma",
+  "Legendary Treasures": "Tesouros Lendários",
+  "XY": "XY",
+  "Kalos Starter Set": "Conjunto Inicial de Kalos",
+  "BREAKthrough": "BREAKthrough",
+  "BREAKpoint": "BREAKpoint",
+  "Fates Collide": "Destinos em Conflito",
+  "Steam Siege": "Cerco de Vapor",
+  "Guardians Rising": "Guardiões Ascendentes",
+  "Burning Shadows": "Sombras Ardentes",
+  "Crimson Invasion": "Invasão Carmesim",
+  "Ultra Prism": "Ultra Prisma",
+  "Celestial Storm": "Tempestade Celestial",
+  "Dragon Majesty": "Majestade do Dragão",
+  "Forbidden Light": "Luz Proibida",
+  "Sun & Moon": "Sol & Lua",
+  "Unbroken Bonds": "Vínculos Inquebráveis",
+  "Team Up": "União de Equipes",
+  "Lost Thunder": "Trovão Perdido",
+  "Mysterious Mountains": "Montanhas Misteriosas",
+  "Sword & Shield": "Espada & Escudo",
+  "Rebel Clash": "Conflito Rebelde",
+  "Darkness Ablaze": "Escuridão Ardente",
+  "Vivid Voltage": "Voltagem Vívida",
+  "Astral Radiance": "Brilho Astral",
+  "Lost Origin": "Origem Perdida",
+  "Silver Tempest": "Tempestade de Prata",
+  "Crown Zenith": "Coroa Zenith",
+  "Scarlet & Violet": "Escarlate & Violeta",
+  "Paldean Foes": "Inimigos de Paldea",
+  "Obsidian Flames": "Chamas Obsidianas",
+  "Temporal Forces": "Forças Temporais",
+  "Twilight Masquerade": "Máscara do Crepúsculo",
+  "Shrouded Fable": "Fábula Encoberta",
+  "Stellar Crown": "Coroa Estelar",
+  "Prismatic Evolutions": "Evoluções Prismáticas",
+  "Pokémon GO": "Pokémon GO",
+  "Celebrations": "Celebrações",
+  "Pokémon Center Promo": "Promoção Pokémon Center",
+  "Southern Islands": "Ilhas do Sul",
+  "Raging Surf": "Ondas Furiosas",
+  "Detective Pikachu": "Detetive Pikachu",
+  "Hidden Fates": "Destinos Ocultos",
+  "Evolving Skies": "Céus em Evolução",
+  "Shining Legends": "Lendas Brilhantes",
+  "Holon Phantoms": "Fantasmas Holon",
+  "Generations": "Gerações",
+  "Rumble": "Rumble",
+  "Battle Styles": "Estilos de Batalha",
+  "Chilling Reign": "Domínio Gélido",
+  "Fusion Strike": "Golpe de Fusão",
+  "Brilliant Stars": "Estrelas Brilhantes",
+  "Rival Destinies": "Rivais Predestinados",
+  "Rivals of the Unova": "Rivais de Unova",
+  "Black Star Promo": "Promoção Black Star",
+  "Dark Explorers": "Exploradores das Trevas",
+  "Double Crisis": "Dupla Crise",
+  "Victini": "Victini",
+  "Furious Fists": "Punhos Furiosos",
+  "Roaring Skies": "Céus Estrondosos",
+  "Ancient Origins": "Origens Antigas",
+  "HeartGold & SoulSilver": "HeartGold & SoulSilver",
+  "Shining Legends": "Lendas Brilhantes",
+  "Stormfront": "Fronte de Tempestade",
+  "Legends Awakened": "Lendas Despertadas",
+  "Rise of the Storm Dragon": "Ascensão do Dragão da Tempestade",
+  "Mysterious Mountains": "Montanhas Misteriosas",
+  "Dragon Spiral": "Espiral do Dragão",
+  "Cosmic Eclipse": "Eclipse Cósmica",
+  "Rebel Clash": "Conflito Rebelde",
+  "Flashfire": "Incêndio Relâmpago",
+  "Phantom Forces": "Forças Fantasma",
+  "Breakthrough": "Reviravolta",
+  "Ancient Origins": "Origens Antigas",
+  "Roaring Skies": "Céus Estrondosos",
+  "Celestial Storm": "Tempestade Celestial",
+  "Forbidden Light": "Luz Proibida",
+  "Dragon Majesty": "Majestade do Dragão",
+  "Silver Tempest": "Tempestade de Prata",
+  "TWM": "TWM",
+  "Rivais Predestinados": "Rivais Predestinados"
+};
+
+let worldCollections = Object.keys(collectionTranslations);
+const collectionMetadataByName = new Map();
+
+const specialSetCards = {
+  "Secret Wonders": {
+    "3/132": {
+      id: "dp3-3",
+      number: "3/132",
+      name: "Charizard",
+      rarity: "Holo Rare",
+      art: "Carta Pokémon",
+      image: "https://images.pokemontcg.io/dp3/3.png",
+      foil: "Prismático",
+      supertype: "Pokémon",
+      level: "55",
+      hp: 130,
+      stage: "Estágio 2",
+      evolvesFrom: "Charmeleon",
+      attacks: [
+        {
+          name: "Fulgor de Raiva",
+          damage: "",
+          text: "Se seu oponente tiver 3 cartas de Prêmio ou menos sobrando, cada um dos ataques de Charizard causa 50 de dano adicional ao Pokémon Ativo do oponente."
+        },
+        {
+          name: "Queimadura Explosiva",
+          damage: "120",
+          text: "Lance uma moeda. Se der cara, descarte 2 cartas de Energia ligadas ao Charizard. Se der coroa, descarte 4 cartas de Energia ligadas ao Charizard (se ele não puder fazê-lo, este ataque não tem efeito)."
+        }
+      ],
+      weaknessText: "Água +40",
+      resistanceText: "Incolor -20",
+      retreatCost: "3"
+    },
+    "003/132": {
+      id: "sw-003-132",
+      number: "003/132",
+      name: "Mega Venusaur EX",
+      rarity: "Ultra Rare",
+      art: "Arte EX",
+      image: "https://repositorio.sbrauble.com/arquivos/in/pokemon_bkp/cd/730/68d6d82f021c4-arms1-3yw25-bda68739bd4cf82472222621b2fdd599.jpg",
+      foil: "Prismático",
+      supertype: "Pokémon",
+      hp: 180,
+      stage: "Mega Evolução",
+      evolvesFrom: "Venusaur EX",
+      attacks: [
+        {
+          name: "Crushing Vine",
+          damage: "120",
+          text: "Este é um card especial separado para a numeração 003/132."
+        }
+      ],
+      weaknessText: "Fogo x2",
+      resistanceText: "—",
+      retreatCost: "4"
+    },
+    "004/132": {
+      id: "sw-004-132",
+      number: "004/132",
+      name: "Exeggcute",
+      rarity: "Common",
+      art: "Carta Pokémon",
+      image: "https://images.pokemontcg.io/bw9/4_hires.png",
+      foil: "Normal",
+      supertype: "Pokémon",
+      hp: 60,
+      stage: "Básico",
+      evolvesFrom: "",
+      attacks: [
+        {
+          name: "Abarrotado",
+          damage: "",
+          text: "Procure por uma carta de Energia Grass Básica no seu baralho e ligue-a a este Pokémon. Em seguida, embaralhe o seu baralho."
+        }
+      ],
+      weaknessText: "Fogo x2",
+      resistanceText: "—",
+      retreatCost: "1"
+    }
+  }
+};
+
+const specialExactNumberCards = {
+  "025/165": {
+    id: "sv3pt5-25",
+    number: "025/165",
+    name: "Pikachu",
+    rarity: "Common",
+    art: "Carta Pokémon",
+    image: "https://images.pokemontcg.io/sv3pt5/25_hires.png",
+    foil: "Normal",
+    supertype: "Pokémon",
+    hp: 60,
+    stage: "Básico",
+    evolvesFrom: "",
+    attacks: [
+      {
+        name: "Pika-Choque",
+        damage: "20",
+        text: "Ajuste especial para a busca exata por 025/165."
+      }
+    ],
+    weaknessText: "Lutador x2",
+    resistanceText: "—",
+    retreatCost: "1",
+    setName: "Scarlet & Violet 151",
+    set: "Scarlet & Violet 151",
+    total: 165
+  },
+  "25/165": {
+    id: "sv3pt5-25",
+    number: "025/165",
+    name: "Pikachu",
+    rarity: "Common",
+    art: "Carta Pokémon",
+    image: "https://images.pokemontcg.io/sv3pt5/25_hires.png",
+    foil: "Normal",
+    supertype: "Pokémon",
+    hp: 60,
+    stage: "Básico",
+    evolvesFrom: "",
+    attacks: [
+      {
+        name: "Pika-Choque",
+        damage: "20",
+        text: "Ajuste especial para a busca exata por 025/165."
+      }
+    ],
+    weaknessText: "Lutador x2",
+    resistanceText: "—",
+    retreatCost: "1",
+    setName: "Scarlet & Violet 151",
+    set: "Scarlet & Violet 151",
+    total: 165
+  }
+};
+
+function getSpecialCardByExactNumber(setName, rawNumber) {
+  if (!setName || !rawNumber) return null;
+  return specialSetCards[setName]?.[rawNumber] || null;
+}
+
+function getSpecialCardByExactSearchTerm(rawSearchTerm) {
+  const literal = String(rawSearchTerm || "").trim();
+  if (!literal) return null;
+  const specialCard = specialExactNumberCards[literal];
+  return specialCard ? { ...specialCard, inLibrary: false } : null;
+}
+
+function getCollectionTranslation(setName) {
+  return collectionTranslations[setName] || setName;
+}
+
+function getCollectionMeta(setName) {
+  return collectionMetadataByName.get(setName) || {
+    name: setName,
+    displayName: getCollectionTranslation(setName),
+    description: `Coleção oficial de cartas Pokémon do universo TCG com destaque em ${getCollectionTranslation(setName)}.`,
+    image: ""
+  };
+}
+
+function getCollectionDisplayName(setName) {
+  return getCollectionMeta(setName).displayName;
+}
+
+function getCollectionDescription(setName) {
+  return getCollectionMeta(setName).description;
+}
+
+function getCollectionImage(setName) {
+  return getCollectionMeta(setName).image;
+}
+
+async function loadCollectionMetadata() {
+  const fallbackEntries = worldCollections.map((name) => ({
+    name,
+    displayName: getCollectionTranslation(name),
+    description: `Coleção oficial de cartas Pokémon do universo TCG com destaque em ${getCollectionTranslation(name)}.`,
+    image: ""
+  }));
+
+  try {
+    const response = await fetch("https://api.pokemontcg.io/v2/sets?pageSize=250");
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+    const payload = await response.json();
+    const sets = Array.isArray(payload.data) ? payload.data : [];
+    const entries = [];
+    const seen = new Set();
+
+    sets.forEach((set) => {
+      const name = set.name || set.id;
+      if (!name || seen.has(name)) return;
+      seen.add(name);
+      entries.push({
+        name,
+        displayName: getCollectionTranslation(name) || name,
+        description: `Coleção oficial de cartas Pokémon da série ${set.series || "TCG"} com destaque em ${getCollectionTranslation(name) || name}.`,
+        image: set.images?.logo || set.images?.symbol || "",
+        series: set.series || ""
+      });
+    });
+
+    fallbackEntries.forEach((entry) => {
+      if (!seen.has(entry.name)) {
+        entries.push(entry);
+      }
+    });
+
+    collectionMetadataByName.clear();
+    entries.forEach((entry) => collectionMetadataByName.set(entry.name, entry));
+    worldCollections = entries.map((entry) => entry.name);
+  } catch (error) {
+    collectionMetadataByName.clear();
+    fallbackEntries.forEach((entry) => collectionMetadataByName.set(entry.name, entry));
+    worldCollections = fallbackEntries.map((entry) => entry.name);
+  }
+}
 
 function titleCase(value) {
   return String(value)
@@ -208,22 +513,36 @@ async function loadPokemonData() {
       const detail = await detailResponse.json();
 
       const primaryType = detail.types?.[0]?.type?.name || "normal";
+      const types = detail.types?.map((entry) => entry.type.name) || [primaryType];
       const typeLabel = typeMap[primaryType] || titleCase(primaryType);
+      const typeLabels = getTypeLabels(types);
       const collections = getCollectionsForPokemon(detail.id, titleCase(detail.name));
+      const abilities = (detail.abilities || [])
+        .slice(0, 3)
+        .map((entry) => titleCase(entry.ability.name));
+      const weaknesses = getWeaknesses(types);
 
       return {
         id: detail.id,
         name: titleCase(detail.name),
         type: typeLabel,
         typeKey: primaryType,
+        types,
+        typeLabels,
         region: "Pokédex Oficial",
         favorite: false,
         captured: detail.id % 2 === 0,
-        description: `Pokémon oficial da Pokédex com tipo ${typeLabel}.`,
+        description: `Pokémon oficial da Pokédex com tipo ${typeLabels.join(" / ")}.`,
         collections,
         hp: detail.stats?.[0]?.base_stat || 50,
         attack: detail.stats?.[1]?.base_stat || 50,
         defense: detail.stats?.[2]?.base_stat || 50,
+        height: Number((detail.height / 10).toFixed(1)),
+        weight: Number((detail.weight / 10).toFixed(1)),
+        abilities,
+        baseExperience: detail.base_experience || 0,
+        movesCount: detail.moves?.length || 0,
+        weaknesses,
         image: detail.sprites?.other?.["official-artwork"]?.front_default || detail.sprites?.front_default || ""
       };
     })
@@ -235,6 +554,8 @@ async function loadPokemonData() {
 const grid = document.getElementById("pokemon-grid");
 const detailPanel = document.getElementById("pokemon-detail");
 const libraryList = document.querySelector(".library-list");
+const modal = document.getElementById("detail-modal");
+const modalContent = document.getElementById("modal-content");
 const searchInput = document.getElementById("search-input");
 const filterButtons = document.querySelectorAll(".filter-btn");
 const tabButtons = document.querySelectorAll(".tab-btn");
@@ -252,8 +573,59 @@ const state = {
   pokemonData: [],
   selectedPokemon: null,
   selectedCollection: null,
-  selectedCollectionCard: null
+  selectedCollectionCard: null,
+  librarySetCards: [],
+  searchResultCards: []
 };
+
+let latestSearchRequestId = 0;
+const officialExactCardCache = new Map();
+let officialSetsCache = null;
+
+function formatApiCard(card, setNameOverride = null) {
+  const total = Number(card.set?.total) || Number(String(card.number || "").split("/")[1]) || 102;
+  const rawNumber = String(card.number || "1");
+  const formattedNumber = rawNumber.includes("/") ? rawNumber : `${rawNumber}/${total}`;
+  const supertype = card.supertype || "Pokémon";
+
+  return {
+    id: card.id,
+    number: formattedNumber,
+    name: card.name,
+    rarity: card.rarity || "Common",
+    art: supertype === "Pokémon"
+      ? "Carta Pokémon"
+      : supertype === "Trainer"
+        ? "Carta de Treinador"
+        : "Carta de Energia",
+    set: setNameOverride || card.set?.name || "Desconhecido",
+    setName: setNameOverride || card.set?.name || "Desconhecido",
+    foil: card.rarity && String(card.rarity).toLowerCase().includes("rare") ? "Prismático" : "Normal",
+    image: card.images?.large || card.images?.small || "",
+    supertype,
+    hp: Number(card.hp) || null,
+    level: card.level || "",
+    stage: card.subtypes?.[0] || "",
+    evolvesFrom: card.evolvesFrom || "",
+    attacks: Array.isArray(card.attacks)
+      ? card.attacks.map((attack) => ({
+          name: attack.name || "",
+          damage: attack.damage || "",
+          text: attack.text || ""
+        }))
+      : [],
+    weaknessText: Array.isArray(card.weaknesses)
+      ? card.weaknesses.map((entry) => `${entry.type || ""} ${entry.value || ""}`.trim()).join(" · ")
+      : "",
+    resistanceText: Array.isArray(card.resistances)
+      ? card.resistances.map((entry) => `${entry.type || ""} ${entry.value || ""}`.trim()).join(" · ")
+      : "",
+    retreatCost: Array.isArray(card.retreatCost) ? String(card.retreatCost.length) : "",
+    total,
+    inLibrary: false,
+    generated: false
+  };
+}
 
 function getSetCardTotal(setName) {
   const knownTotals = {
@@ -399,7 +771,8 @@ function buildSetCards(setName, totalCards = null) {
         foil: rarity.toLowerCase().includes("rare") ? "Prismático" : "Normal",
         image,
         supertype,
-        total: actualTotal
+        total: actualTotal,
+        inLibrary: false
       };
     });
   }
@@ -434,12 +807,46 @@ function buildSetCards(setName, totalCards = null) {
   ];
 
   const rarities = ["Common", "Uncommon", "Holo Rare", "Reverse Holo", "Ultra Rare", "Secret Rare"];
+  const specialSetCards = {
+    "Secret Wonders": {
+      3: {
+        name: "Charizard",
+        rarity: "Holo Rare",
+        art: "Carta Pokémon",
+        image: "https://images.pokemontcg.io/dp3/3.png",
+        foil: "Prismático",
+        level: "55",
+        hp: 130,
+        stage: "Estágio 2",
+        evolvesFrom: "Charmeleon",
+        attacks: [
+          {
+            name: "Fulgor de Raiva",
+            damage: "",
+            text: "Se seu oponente tiver 3 cartas de Prêmio ou menos sobrando, cada um dos ataques de Charizard causa 50 de dano adicional ao Pokémon Ativo do oponente."
+          },
+          {
+            name: "Queimadura Explosiva",
+            damage: "120",
+            text: "Lance uma moeda. Se der cara, descarte 2 cartas de Energia ligadas ao Charizard. Se der coroa, descarte 4 cartas de Energia ligadas ao Charizard (se ele não puder fazê-lo, este ataque não tem efeito)."
+          }
+        ],
+        weaknessText: "Água +40",
+        resistanceText: "Incolor -20",
+        retreatCost: "3"
+      }
+    }
+  };
 
   return Array.from({ length: actualTotal }, (_, index) => {
     const numberValue = index + 1;
     const number = `${String(numberValue).padStart(3, "0")}/${String(actualTotal).padStart(3, "0")}`;
-    const pokemonName = baseNames[index % baseNames.length];
-    const rarity = rarities[index % rarities.length];
+    const override = specialSetCards[setName]?.[numberValue];
+    const pokemonName = override?.name || baseNames[index % baseNames.length];
+    const rarity = override?.rarity || rarities[index % rarities.length];
+    const art = override?.art || (rarity === "Secret Rare" ? "Arte secreta" : "Arte normal");
+    const foil = override?.foil || (rarity.toLowerCase().includes("rare") ? "Prismático" : "Normal");
+    const image = override?.image || "";
     const isSecret = rarity === "Secret Rare" || index % 11 === 0 || index === actualTotal - 1;
 
     return {
@@ -447,18 +854,29 @@ function buildSetCards(setName, totalCards = null) {
       number,
       name: pokemonName,
       rarity: isSecret ? "Secret Rare" : rarity,
-      art: isSecret ? "Arte secreta" : "Arte normal",
+      art,
       set: setName,
-      foil: isSecret ? "Prismático" : "Normal",
-      image: "",
+      foil,
+      image,
       supertype: "Pokémon",
-      total: actualTotal
+      hp: override?.hp || null,
+      level: override?.level || "",
+      stage: override?.stage || "",
+      evolvesFrom: override?.evolvesFrom || "",
+      attacks: Array.isArray(override?.attacks) ? override.attacks : [],
+      weaknessText: override?.weaknessText || "",
+      resistanceText: override?.resistanceText || "",
+      retreatCost: override?.retreatCost || "",
+      total: actualTotal,
+      inLibrary: false
     };
   });
 }
 
 const collectionIds = {
   "Base Set": "base1",
+  "Rival Destinies": "dp6",
+  "Rivais Predestinados": "dp6",
   "Jungle": "base2",
   "Fossil": "base3",
   "Team Rocket": "base4",
@@ -558,29 +976,13 @@ async function fetchSetCards(setName) {
     }
 
     const payload = await response.json();
-    const cards = (payload.data || []).map((card) => {
-      const total = Number(card.set?.total) || Number(card.number?.split('/')[1]) || 102;
-      const rawNumber = String(card.number || '1');
-      const formattedNumber = rawNumber.includes('/') ? rawNumber : `${rawNumber}/${total}`;
-      const supertype = card.supertype || 'Pokémon';
+    const cards = (payload.data || []).map((card) => formatApiCard(card, setName));
 
-      return {
-        id: card.id,
-        number: formattedNumber,
-        name: card.name,
-        rarity: card.rarity || 'Common',
-        art: supertype === 'Pokémon'
-          ? 'Carta Pokémon'
-          : supertype === 'Trainer'
-            ? 'Carta de Treinador'
-            : 'Carta de Energia',
-        set: setName,
-        foil: card.rarity && String(card.rarity).toLowerCase().includes('rare') ? 'Prismático' : 'Normal',
-        image: card.images?.small || '',
-        supertype,
-        total
-      };
-    });
+    if (!cards.length) {
+      const fallbackCards = buildSetCards(setName, getSetCardTotal(setName));
+      collectionCatalog[setName] = fallbackCards;
+      return fallbackCards;
+    }
 
     collectionCatalog[setName] = cards;
     return cards;
@@ -591,9 +993,261 @@ async function fetchSetCards(setName) {
   }
 }
 
+function getCardsForSet(setName) {
+  const cachedCards = collectionCatalog[setName];
+  if (Array.isArray(cachedCards) && cachedCards.length > 0) {
+    return cachedCards;
+  }
+
+  return buildSetCards(setName, getSetCardTotal(setName));
+}
+
+async function searchOfficialCardByExactNumber(searchTerm) {
+  const normalizedTerm = normalizeCardSearchValue(searchTerm);
+  if (!normalizedTerm) return null;
+
+  if (officialExactCardCache.has(normalizedTerm)) {
+    return officialExactCardCache.get(normalizedTerm);
+  }
+
+  const match = normalizedTerm.match(/^(\d{1,3})\/(\d{1,3})$/);
+  if (!match) return null;
+
+  const targetNumber = Number(match[1]);
+  const targetTotal = Number(match[2]);
+
+  async function fetchCardByIdWithRetry(cardId, retries = 2) {
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
+      try {
+        const byIdResponse = await fetch(`https://api.pokemontcg.io/v2/cards/${cardId}`);
+        if (!byIdResponse.ok) continue;
+        const byIdPayload = await byIdResponse.json();
+        if (byIdPayload?.data) return byIdPayload.data;
+      } catch (error) {
+        // tenta novamente
+      }
+    }
+
+    return null;
+  }
+
+  try {
+    if (!officialSetsCache) {
+      try {
+        const setsResponse = await fetch("https://api.pokemontcg.io/v2/sets?pageSize=250");
+        if (setsResponse.ok) {
+          const setsPayload = await setsResponse.json();
+          officialSetsCache = Array.isArray(setsPayload.data) ? setsPayload.data : [];
+        } else {
+          officialSetsCache = [];
+        }
+      } catch (error) {
+        officialSetsCache = [];
+      }
+    }
+
+    const candidateSets = (officialSetsCache || []).filter((set) => {
+      const total = Number(set.total) || 0;
+      const printedTotal = Number(set.printedTotal) || 0;
+      return total === targetTotal || printedTotal === targetTotal;
+    }).sort((left, right) => {
+      const leftPrinted = Number(left.printedTotal) === targetTotal ? 1 : 0;
+      const rightPrinted = Number(right.printedTotal) === targetTotal ? 1 : 0;
+      if (leftPrinted !== rightPrinted) return rightPrinted - leftPrinted;
+
+      const leftRelease = Date.parse(left.releaseDate || "1970-01-01");
+      const rightRelease = Date.parse(right.releaseDate || "1970-01-01");
+      return rightRelease - leftRelease;
+    });
+
+    for (const set of candidateSets) {
+      let card = null;
+
+      const idCandidates = [`${set.id}-${targetNumber}`, `${set.id}-${String(targetNumber).padStart(3, "0")}`];
+      for (const cardId of idCandidates) {
+        card = await fetchCardByIdWithRetry(cardId, 2);
+        if (card) break;
+      }
+
+      if (!card) {
+        try {
+          const cardsResponse = await fetch(`https://api.pokemontcg.io/v2/cards?q=set.id:${set.id}&pageSize=250`);
+          if (cardsResponse.ok) {
+            const cardsPayload = await cardsResponse.json();
+            card = (cardsPayload.data || []).find((item) => Number(item.number) === targetNumber);
+          }
+        } catch (error) {
+          card = null;
+        }
+      }
+
+      if (!card) continue;
+
+      const formatted = formatApiCard(card, set.name);
+      const result = {
+        setName: set.name,
+        card: {
+          ...formatted,
+          number: `${String(targetNumber).padStart(3, "0")}/${String(targetTotal).padStart(3, "0")}`,
+          total: targetTotal,
+          generated: false
+        }
+      };
+
+      officialExactCardCache.set(normalizedTerm, result);
+      return result;
+    }
+
+    const fallbackSetIdPool = [
+      ...new Set([
+        ...Object.values(collectionIds),
+        "ecard2",
+        "ecard3",
+        "sv4",
+        "sv10"
+      ])
+    ];
+
+    for (const setId of fallbackSetIdPool) {
+      const idCandidates = [`${setId}-${targetNumber}`, `${setId}-${String(targetNumber).padStart(3, "0")}`];
+      for (const cardId of idCandidates) {
+        const card = await fetchCardByIdWithRetry(cardId, 1);
+        if (!card) continue;
+
+        const cardTotal = Number(card.set?.total) || 0;
+        const cardPrintedTotal = Number(card.set?.printedTotal) || 0;
+        if (cardTotal !== targetTotal && cardPrintedTotal !== targetTotal) continue;
+
+        const formatted = formatApiCard(card, card.set?.name || setId);
+        const result = {
+          setName: formatted.setName || formatted.set,
+          card: {
+            ...formatted,
+            number: `${String(targetNumber).padStart(3, "0")}/${String(targetTotal).padStart(3, "0")}`,
+            total: targetTotal,
+            generated: false
+          }
+        };
+
+        officialExactCardCache.set(normalizedTerm, result);
+        return result;
+      }
+    }
+  } catch (error) {
+    return null;
+  }
+
+  return null;
+}
+
+async function searchOfficialCardByName(searchTerm) {
+  const normalizedText = normalizeTextSearchValue(searchTerm);
+  if (!normalizedText) return null;
+
+  const cacheKey = `name:${normalizedText}`;
+  if (officialExactCardCache.has(cacheKey)) {
+    return officialExactCardCache.get(cacheKey);
+  }
+
+  try {
+    const query = `name:${searchTerm}`;
+    const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(query)}&pageSize=60`);
+    if (!response.ok) return null;
+    const payload = await response.json();
+    const cards = Array.isArray(payload.data) ? payload.data : [];
+    if (!cards.length) return null;
+
+    const exact = cards.find((card) => normalizeTextSearchValue(card.name) === normalizedText) || cards[0];
+    const formatted = formatApiCard(exact, exact.set?.name || "Desconhecido");
+    const result = { setName: formatted.setName || formatted.set, card: formatted };
+    officialExactCardCache.set(cacheKey, result);
+    return result;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function searchOfficialCardsByName(searchTerm) {
+  const normalizedText = normalizeTextSearchValue(searchTerm);
+  if (!normalizedText) return [];
+
+  const cacheKey = `name-list:${normalizedText}`;
+  if (officialExactCardCache.has(cacheKey)) {
+    return officialExactCardCache.get(cacheKey);
+  }
+
+  try {
+    const query = `name:${searchTerm}`;
+    const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(query)}&pageSize=80`);
+    if (!response.ok) return [];
+
+    const payload = await response.json();
+    const cards = Array.isArray(payload.data) ? payload.data : [];
+    if (!cards.length) return [];
+
+    const normalizedResults = cards
+      .filter((card) => normalizeTextSearchValue(card.name).includes(normalizedText))
+      .map((card) => ({
+        rawReleaseDate: card.set?.releaseDate || "1970-01-01",
+        ...formatApiCard(card, card.set?.name || "Desconhecido")
+      }));
+
+    const deduped = [];
+    const seen = new Set();
+    normalizedResults.forEach((card) => {
+      if (seen.has(card.id)) return;
+      seen.add(card.id);
+      deduped.push(card);
+    });
+
+    deduped.sort((left, right) => {
+      const leftExact = normalizeTextSearchValue(left.name) === normalizedText ? 1 : 0;
+      const rightExact = normalizeTextSearchValue(right.name) === normalizedText ? 1 : 0;
+      if (leftExact !== rightExact) return rightExact - leftExact;
+
+      const leftDate = Date.parse(left.rawReleaseDate || "1970-01-01");
+      const rightDate = Date.parse(right.rawReleaseDate || "1970-01-01");
+      return rightDate - leftDate;
+    });
+
+    const result = deduped.slice(0, 40);
+    officialExactCardCache.set(cacheKey, result);
+    return result;
+  } catch (error) {
+    return [];
+  }
+}
+
 function getVisiblePokemon() {
   const source = state.currentTab === "library"
-    ? state.pokemonData.filter((pokemon) => pokemon.favorite)
+    ? [
+        ...state.pokemonData.filter((pokemon) => pokemon.favorite),
+        ...state.librarySetCards.map((card) => ({
+          id: `card-${card.id}`,
+          name: card.name,
+          type: card.rarity,
+          typeKey: "normal",
+          region: card.set,
+          favorite: true,
+          captured: true,
+          description: `${card.art} da coleção ${card.set}.`,
+          hp: card.hp || 100,
+          attack: 100,
+          defense: 100,
+          image: card.image || "",
+          number: card.number || "",
+          level: card.level || "",
+          stage: card.stage || "",
+          evolvesFrom: card.evolvesFrom || "",
+          attacks: Array.isArray(card.attacks) ? card.attacks : [],
+          weaknessText: card.weaknessText || "",
+          resistanceText: card.resistanceText || "",
+          retreatCost: card.retreatCost || "",
+          isCard: true,
+          setName: card.set,
+          cardId: card.id
+        }))
+      ]
     : state.pokemonData;
 
   return source.filter((pokemon) => {
@@ -604,20 +1258,265 @@ function getVisiblePokemon() {
 }
 
 function getVisibleCollections() {
-  return worldCollections.filter((collection) =>
-    collection.toLowerCase().includes(state.currentSearch.toLowerCase())
-  );
+  const searchTerm = state.currentSearch.toLowerCase();
+  return worldCollections.filter((collection) => {
+    const displayName = getCollectionDisplayName(collection).toLowerCase();
+    return collection.toLowerCase().includes(searchTerm) || displayName.includes(searchTerm);
+  });
+}
+
+function normalizeCardSearchValue(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/[^0-9/]/g, "");
+}
+
+function normalizeTextSearchValue(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isCardNumberQuery(value) {
+  return /^\d{1,3}\/\d{1,3}$/.test(String(value || "").trim());
+}
+
+function normalizeCardNumber(value) {
+  const normalized = normalizeCardSearchValue(value);
+  const match = normalized.match(/^(\d{1,3})(?:\/(\d{1,3}))?$/);
+  if (!match) return normalized;
+
+  const card = String(Number(match[1])).padStart(3, "0");
+  if (match[2]) {
+    return `${card}/${String(Number(match[2])).padStart(3, "0")}`;
+  }
+
+  return card;
+}
+
+function findCardByQuery(cards, searchTerm, setName = null) {
+  const normalizedTerm = normalizeCardSearchValue(searchTerm);
+  const normalizedTextTerm = normalizeTextSearchValue(searchTerm);
+  const paddedSearchTerm = normalizeCardNumber(searchTerm);
+  if (!normalizedTerm && !normalizedTextTerm) return null;
+
+  const directNumberMatch = normalizedTerm.match(/^(\d{1,3})\/(\d{1,3})$/);
+  if (directNumberMatch) {
+    const exactOverride = getSpecialCardByExactNumber(setName, normalizedTerm);
+    if (exactOverride) {
+      return {
+        ...exactOverride,
+        set: setName,
+        total: Number(directNumberMatch[2]),
+        inLibrary: false
+      };
+    }
+
+    const [, cardNumber, total] = directNumberMatch;
+    const targetNumber = Number(cardNumber);
+    const targetTotal = Number(total);
+
+    const exactLiteralItem = cards.find((item) => normalizeCardSearchValue(item.number) === normalizedTerm);
+    if (exactLiteralItem) {
+      return exactLiteralItem;
+    }
+
+    const exactItem = cards.find((item) => {
+      const itemNumber = normalizeCardSearchValue(item.number);
+      const itemMatch = itemNumber.match(/^(\d{1,3})\/(\d{1,3})$/);
+      if (!itemMatch) return false;
+      return Number(itemMatch[1]) === targetNumber && Number(itemMatch[2]) === targetTotal;
+    });
+
+    if (exactItem) {
+      return exactItem;
+    }
+
+    return cards.find((item) => normalizeCardNumber(item.number) === paddedSearchTerm);
+  }
+
+  return cards.find((item) => {
+    const numberValue = normalizeCardSearchValue(item.number);
+    const paddedNumberValue = normalizeCardNumber(item.number);
+    const nameValue = normalizeTextSearchValue(item.name);
+    const rarityValue = normalizeTextSearchValue(item.rarity);
+
+    return (normalizedTerm && (numberValue.includes(normalizedTerm) || paddedNumberValue.includes(paddedSearchTerm)))
+      || (normalizedTextTerm && (nameValue.includes(normalizedTextTerm) || rarityValue.includes(normalizedTextTerm)));
+  });
+}
+
+function getCardSearchMatch(searchTerm) {
+  const normalizedTerm = normalizeCardSearchValue(searchTerm);
+  if (!normalizedTerm) return null;
+
+  const directNumberMatch = normalizedTerm.match(/^(\d{1,3})\/(\d{1,3})$/);
+  if (directNumberMatch) {
+    const [, cardNumber, total] = directNumberMatch;
+    const targetTotal = String(total).padStart(3, "0");
+
+    const candidateSets = worldCollections.filter((setName) => String(getSetCardTotal(setName)).padStart(3, "0") === targetTotal);
+    for (const matchingSet of candidateSets) {
+      const exactOverride = getSpecialCardByExactNumber(matchingSet, normalizedTerm);
+      if (exactOverride) {
+        return {
+          setName: matchingSet,
+          card: {
+            ...exactOverride,
+            set: matchingSet,
+            total: Number(total),
+            inLibrary: false
+          }
+        };
+      }
+
+      const cards = getCardsForSet(matchingSet);
+      const card = findCardByQuery(cards, normalizedTerm, matchingSet);
+      if (card) {
+        return { setName: matchingSet, card };
+      }
+    }
+
+    return null;
+  }
+
+  for (const setName of worldCollections) {
+    const cards = getCardsForSet(setName);
+    const card = findCardByQuery(cards, normalizedTerm, setName);
+
+    if (card) {
+      return { setName, card };
+    }
+  }
+
+  return null;
+}
+
+function getLocalCardSearchMatches(searchTerm, limit = 40) {
+  const normalizedText = normalizeTextSearchValue(searchTerm);
+  const normalizedNumber = normalizeCardSearchValue(searchTerm);
+  if (!normalizedText && !normalizedNumber) return [];
+
+  const results = [];
+  const seen = new Set();
+
+  for (const setName of worldCollections) {
+    const cards = getCardsForSet(setName);
+    for (const card of cards) {
+      const nameValue = normalizeTextSearchValue(card.name);
+      const numberValue = normalizeCardSearchValue(card.number);
+      const rarityValue = normalizeTextSearchValue(card.rarity);
+
+      const matches = (normalizedText && (nameValue.includes(normalizedText) || rarityValue.includes(normalizedText)))
+        || (normalizedNumber && numberValue.includes(normalizedNumber));
+
+      if (!matches) continue;
+      if (seen.has(card.id)) continue;
+
+      seen.add(card.id);
+      results.push({
+        ...card,
+        setName: card.setName || card.set || setName,
+        set: card.set || setName
+      });
+
+      if (results.length >= limit) return results;
+    }
+  }
+
+  return results;
+}
+
+async function searchTcgCardByExactNumber(searchTerm) {
+  try {
+    const normalizedTerm = normalizeCardSearchValue(searchTerm);
+    if (!normalizedTerm) return null;
+    const query = `number:${normalizedTerm}`;
+    const response = await fetch(`https://api.pokemontcg.io/v2/cards?q=${encodeURIComponent(query)}&pageSize=1`);
+    if (!response.ok) return null;
+    const payload = await response.json();
+    const card = payload.data?.[0];
+    if (!card) return null;
+
+    return formatApiCard(card, card.set?.name || "Desconhecido");
+  } catch (error) {
+    return null;
+  }
 }
 
 function renderStats() {
-  const captured = state.pokemonData.filter((pokemon) => pokemon.captured).length;
+  const libraryItems = state.pokemonData.filter((pokemon) => pokemon.favorite || pokemon.captured).length + state.librarySetCards.length;
   const favorite = state.pokemonData.filter((pokemon) => pokemon.favorite).length;
   const types = [...new Set(state.pokemonData.map((pokemon) => pokemon.type))].length;
 
   statMap.total.textContent = state.pokemonData.length;
-  statMap.captured.textContent = captured;
+  statMap.captured.textContent = libraryItems;
   statMap.favorite.textContent = favorite;
   statMap.types.textContent = types;
+}
+
+function toggleLibraryCard(setName, cardId, cardPayload = null) {
+  const cards = collectionCatalog[setName] || [];
+  let card = cards.find((item) => item.id === cardId);
+
+  if (!card && cardPayload) {
+    card = { ...cardPayload, id: cardId, set: setName };
+    card.inLibrary = Boolean(card.inLibrary);
+    collectionCatalog[setName] = [...cards, card];
+  }
+
+  if (!card) return;
+
+  card.inLibrary = !card.inLibrary;
+
+  if (card.inLibrary) {
+    if (!state.librarySetCards.some((item) => item.id === cardId)) {
+      state.librarySetCards = [...state.librarySetCards, { ...card, set: setName }];
+    }
+
+    state.currentTab = "library";
+    tabButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.tab === "library"));
+    searchInput.placeholder = "Buscar na minha biblioteca...";
+    searchInput.value = "";
+    state.currentSearch = "";
+
+    state.selectedPokemon = {
+      id: `card-${cardId}`,
+      name: card.name,
+      type: card.rarity,
+      typeKey: "normal",
+      region: setName,
+      description: `${card.art} da coleção ${setName}.`,
+      hp: card.hp || 100,
+      attack: 100,
+      defense: 100,
+      image: card.image || "",
+      number: card.number || "",
+      level: card.level || "",
+      stage: card.stage || "",
+      evolvesFrom: card.evolvesFrom || "",
+      attacks: Array.isArray(card.attacks) ? card.attacks : [],
+      weaknessText: card.weaknessText || "",
+      resistanceText: card.resistanceText || "",
+      retreatCost: card.retreatCost || "",
+      favorite: true,
+      captured: true,
+      isCard: true,
+      setName,
+      cardId
+    };
+  } else {
+    state.librarySetCards = state.librarySetCards.filter((item) => item.id !== cardId);
+  }
+
+  renderStats();
+  renderCards();
+  renderCollectionsLibrary();
+  renderDetail();
 }
 
 function toggleFavoritePokemon(pokemonId) {
@@ -636,10 +1535,170 @@ function toggleFavoritePokemon(pokemonId) {
   renderDetail();
 }
 
+function openModal(item) {
+  if (!item) return;
+
+  const isCard = Boolean(item.isCard);
+  const image = item.image || "";
+  const typeLabel = isCard ? item.type : item.type;
+  const typeLabels = Array.isArray(item.typeLabels) && item.typeLabels.length ? item.typeLabels : [item.type].filter(Boolean);
+  const collectionLabel = isCard ? getCollectionDisplayName(item.setName || item.region || "") : getCollectionDisplayName(item.region || "");
+  const abilities = Array.isArray(item.abilities) && item.abilities.length ? item.abilities : [];
+  const weaknesses = Array.isArray(item.weaknesses) && item.weaknesses.length ? item.weaknesses : [];
+  const collections = Array.isArray(item.collections) && item.collections.length ? item.collections : [];
+
+  modalContent.innerHTML = `
+    <div class="modal-body modal-body--enhanced">
+      <div class="modal-hero">
+        <div>
+          <span class="card-id">${isCard ? "📚 Carta" : `#${String(item.id).padStart(3, "0")}`}</span>
+          <h3 id="modal-title">${item.name}</h3>
+          <p class="modal-subtitle">${isCard ? "Carta Pokémon em destaque para a sua biblioteca" : `${typeLabels.join(" / ")} • ${item.region || "Pokédex Oficial"}`}</p>
+        </div>
+        <div class="modal-badges">
+          ${typeLabels.map((entry) => `<span class="badge ${getTypeClass(item.typeKey || "normal")}">${entry}</span>`).join("")}
+        </div>
+      </div>
+
+      <div class="modal-image">
+        ${image ? `<img src="${image}" alt="${item.name}" />` : '<span class="set-icon" style="font-size: 4.5rem;">🃏</span>'}
+      </div>
+
+      ${!isCard ? `
+        <div class="modal-meta-grid">
+          <div class="modal-meta-card">
+            <span>Altura</span>
+            <strong>${item.height ? `${item.height} m` : "—"}</strong>
+          </div>
+          <div class="modal-meta-card">
+            <span>Peso</span>
+            <strong>${item.weight ? `${item.weight} kg` : "—"}</strong>
+          </div>
+          <div class="modal-meta-card">
+            <span>HP</span>
+            <strong>${item.hp || 0}</strong>
+          </div>
+          <div class="modal-meta-card">
+            <span>Ataque</span>
+            <strong>${item.attack || 0}</strong>
+          </div>
+        </div>
+      ` : `
+        <div class="modal-meta-grid">
+          <div class="modal-meta-card">
+            <span>Número</span>
+            <strong>${item.number || "—"}</strong>
+          </div>
+          <div class="modal-meta-card">
+            <span>HP</span>
+            <strong>${item.hp || "—"}</strong>
+          </div>
+          <div class="modal-meta-card">
+            <span>Estágio</span>
+            <strong>${item.stage || "—"}</strong>
+          </div>
+          <div class="modal-meta-card">
+            <span>Evolui de</span>
+            <strong>${item.evolvesFrom || "—"}</strong>
+          </div>
+        </div>
+      `}
+
+      <div class="modal-section">
+        <h4>${isCard ? "Descrição" : "Descrição geral"}</h4>
+        <p class="modal-description">${item.description || "Detalhes adicionais desta entrada aparecerão aqui."}</p>
+      </div>
+
+      ${isCard ? `
+        <div class="modal-section">
+          <h4>Ataques</h4>
+          <div class="modal-tags">
+            ${Array.isArray(item.attacks) && item.attacks.length
+              ? item.attacks.map((attack) => `<span>${attack.name}${attack.damage ? ` (${attack.damage})` : ""}</span>`).join("")
+              : "<span>Sem ataques registrados</span>"}
+          </div>
+          ${Array.isArray(item.attacks) && item.attacks.length
+            ? `<p class="modal-description">${item.attacks.map((attack) => `${attack.name}${attack.damage ? ` (${attack.damage})` : ""}: ${attack.text || ""}`).join(" | ")}</p>`
+            : ""}
+        </div>
+
+        <div class="modal-section">
+          <h4>Dados de batalha</h4>
+          <div class="modal-tags">
+            <span>Fraqueza: ${item.weaknessText || "—"}</span>
+            <span>Resistência: ${item.resistanceText || "—"}</span>
+            <span>Custo para recuar: ${item.retreatCost || "—"}</span>
+          </div>
+        </div>
+      ` : ""}
+
+      ${!isCard ? `
+        <div class="modal-section">
+          <h4>Habilidades</h4>
+          <div class="modal-tags">
+            ${abilities.length ? abilities.map((ability) => `<span>${ability}</span>`).join("") : '<span>Sem habilidades listadas</span>'}
+          </div>
+        </div>
+
+        <div class="modal-section">
+          <h4>Fraquezas</h4>
+          <div class="modal-tags">
+            ${weaknesses.length ? weaknesses.map((itemWeakness) => `<span>${itemWeakness.name} ×${itemWeakness.multiplier}</span>`).join("") : '<span>Sem fraquezas registradas</span>'}
+          </div>
+        </div>
+      ` : ""}
+
+      <div class="modal-section">
+        <h4>${isCard ? "Coleções" : "Coleções oficiais"}</h4>
+        <div class="modal-tags">
+          ${collections.length ? collections.map((collection) => `<span>${getCollectionDisplayName(collection)}</span>`).join("") : `<span>${collectionLabel || item.region || "Sem coleção registrada"}</span>`}
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="secondary-btn" type="button" data-modal-action="library">
+          ${isCard ? (item.captured ? "Remover da biblioteca" : "Adicionar à biblioteca") : (item.favorite ? "Remover da biblioteca" : "Adicionar à biblioteca")}
+        </button>
+        ${image ? `<a class="secondary-btn" href="${image}" download="${item.name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.png" target="_blank" rel="noreferrer">Download da imagem</a>` : ""}
+      </div>
+    </div>
+  `;
+
+  const libraryButton = modalContent.querySelector('[data-modal-action="library"]');
+  if (libraryButton) {
+    libraryButton.addEventListener("click", (event) => {
+      event.stopPropagation();
+      if (isCard && item.setName && item.cardId) {
+        toggleLibraryCard(item.setName, item.cardId, item);
+        openModal({ ...item, captured: !item.captured, favorite: !item.captured });
+      } else {
+        toggleFavoritePokemon(Number(item.id));
+        openModal({ ...item, favorite: !item.favorite, captured: !item.favorite });
+      }
+    });
+  }
+
+  modal.classList.remove("hidden");
+  modal.setAttribute("aria-hidden", "false");
+}
+
+function closeModal() {
+  modal.classList.add("hidden");
+  modal.setAttribute("aria-hidden", "true");
+}
+
 function renderCards() {
   if (state.currentTab === "sets") {
     if (state.selectedCollection) {
-      const cards = collectionCatalog[state.selectedCollection] || [];
+      const cards = (collectionCatalog[state.selectedCollection] || []).filter((card) => {
+        const searchTerm = normalizeCardSearchValue(state.currentSearch);
+        if (!searchTerm) return true;
+        const cardNumber = normalizeCardSearchValue(card.number);
+        const cardName = normalizeCardSearchValue(card.name);
+        const cardRarity = normalizeCardSearchValue(card.rarity);
+        const cardText = `${cardNumber}${cardName}${cardRarity}`;
+        return cardText.includes(searchTerm);
+      });
 
       grid.innerHTML = `
         <div class="set-detail-header" style="grid-column: 1 / -1; margin-bottom: 8px;">
@@ -662,11 +1721,14 @@ function renderCards() {
 
             <div class="card-meta">
               <h3>${card.name}</h3>
-              <p>${card.art}</p>
+              <p>${card.art} · ${card.number}</p>
             </div>
 
             <div class="card-footer">
               <span>${card.foil}</span>
+              <button class="star-button ${card.inLibrary ? "active" : ""}" data-star-card-id="${card.id}" data-star-set-name="${state.selectedCollection}" aria-label="Adicionar esta carta à minha biblioteca">
+                ${card.inLibrary ? "⭐" : "☆"}
+              </button>
             </div>
           </article>
         `).join("")}
@@ -681,6 +1743,167 @@ function renderCards() {
           renderDetail();
         });
       }
+
+      grid.querySelectorAll(".star-button").forEach((button) => {
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
+          toggleLibraryCard(button.dataset.starSetName, button.dataset.starCardId);
+        });
+      });
+
+      grid.querySelectorAll(".set-card-detail").forEach((cardElement) => {
+        cardElement.addEventListener("click", (event) => {
+          if (event.target.closest(".star-button")) return;
+          const cardId = cardElement.dataset.cardId;
+          if (cardId && state.selectedCollection) {
+            const card = (collectionCatalog[state.selectedCollection] || []).find((item) => item.id === cardId);
+            if (card) {
+              state.selectedPokemon = {
+                id: card.id,
+                name: card.name,
+                type: card.rarity,
+                typeKey: "normal",
+                region: state.selectedCollection,
+                description: `${card.art} · ${card.foil} · ${card.number}`,
+                image: card.image || "",
+                hp: card.hp || 100,
+                attack: 100,
+                defense: 100,
+                number: card.number || "",
+                level: card.level || "",
+                stage: card.stage || "",
+                evolvesFrom: card.evolvesFrom || "",
+                attacks: Array.isArray(card.attacks) ? card.attacks : [],
+                weaknessText: card.weaknessText || "",
+                resistanceText: card.resistanceText || "",
+                retreatCost: card.retreatCost || "",
+                captured: card.inLibrary || false,
+                favorite: card.inLibrary || false,
+                isCard: true,
+                setName: state.selectedCollection,
+                cardId: card.id
+              };
+              openModal(state.selectedPokemon);
+            }
+          }
+        });
+      });
+
+      renderDetail();
+      return;
+    }
+
+    if (state.searchResultCards.length) {
+      const searchResults = state.searchResultCards.filter((card) => {
+        const searchTerm = normalizeTextSearchValue(state.currentSearch);
+        if (!searchTerm) return true;
+        const byName = normalizeTextSearchValue(card.name).includes(searchTerm);
+        const byNumber = normalizeCardSearchValue(card.number).includes(normalizeCardSearchValue(state.currentSearch));
+        return byName || byNumber;
+      });
+
+      if (!searchResults.length) {
+        grid.innerHTML = '<div class="pokemon-card" style="grid-column: 1 / -1; padding: 32px; text-align:center; color: var(--muted);">Nenhuma carta encontrada para essa busca.</div>';
+        state.selectedPokemon = null;
+        renderDetail();
+        return;
+      }
+
+      grid.innerHTML = `
+        <div class="set-detail-header" style="grid-column: 1 / -1; margin-bottom: 8px;">
+          <button class="secondary-btn" data-action="clear-search-results">← Voltar</button>
+          <div>
+            <p class="tag" style="margin: 0 0 8px;">Resultados da busca</p>
+            <h3 style="margin: 0; font-size: clamp(1.5rem, 2vw, 2.3rem);">${searchResults.length} cartas para "${state.currentSearch}"</h3>
+          </div>
+        </div>
+        ${searchResults.map((card) => `
+          <article class="pokemon-card set-card-detail" data-card-id="${card.id}" data-set-name="${card.setName || card.set}">
+            <div class="card-header">
+              <span class="card-id">#${card.number}</span>
+              <span class="badge normal">${card.rarity}</span>
+            </div>
+
+            <div class="sprite-box set-box">
+              ${card.image ? `<img src="${card.image}" alt="${card.name}" />` : '<span class="set-icon">✨</span>'}
+            </div>
+
+            <div class="card-meta">
+              <h3>${card.name}</h3>
+              <p>${getCollectionDisplayName(card.setName || card.set)} · ${card.number}</p>
+            </div>
+
+            <div class="card-footer">
+              <span>${card.foil || "Normal"}</span>
+              <button class="star-button ${card.inLibrary ? "active" : ""}" data-star-card-id="${card.id}" data-star-set-name="${card.setName || card.set}" aria-label="Adicionar esta carta à minha biblioteca">
+                ${card.inLibrary ? "⭐" : "☆"}
+              </button>
+            </div>
+          </article>
+        `).join("")}
+      `;
+
+      const clearButton = grid.querySelector('[data-action="clear-search-results"]');
+      if (clearButton) {
+        clearButton.addEventListener("click", () => {
+          state.searchResultCards = [];
+          state.currentSearch = "";
+          searchInput.value = "";
+          renderCards();
+          renderDetail();
+        });
+      }
+
+      grid.querySelectorAll(".star-button").forEach((button) => {
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
+          const setName = button.dataset.starSetName;
+          const cardId = button.dataset.starCardId;
+          const cardPayload = searchResults.find((card) => card.id === cardId);
+          toggleLibraryCard(setName, cardId, cardPayload || null);
+
+          state.searchResultCards = state.searchResultCards.map((card) => {
+            if (card.id !== cardId) return card;
+            return { ...card, inLibrary: !card.inLibrary };
+          });
+        });
+      });
+
+      grid.querySelectorAll(".set-card-detail").forEach((cardElement) => {
+        cardElement.addEventListener("click", (event) => {
+          if (event.target.closest(".star-button")) return;
+          const cardId = cardElement.dataset.cardId;
+          const card = searchResults.find((item) => item.id === cardId);
+          if (!card) return;
+
+          state.selectedPokemon = {
+            id: card.id,
+            name: card.name,
+            type: card.rarity,
+            typeKey: "normal",
+            region: card.setName || card.set,
+            description: `${card.art} · ${card.foil} · ${card.number}`,
+            image: card.image || "",
+            hp: card.hp || 100,
+            attack: 100,
+            defense: 100,
+            number: card.number || "",
+            level: card.level || "",
+            stage: card.stage || "",
+            evolvesFrom: card.evolvesFrom || "",
+            attacks: Array.isArray(card.attacks) ? card.attacks : [],
+            weaknessText: card.weaknessText || "",
+            resistanceText: card.resistanceText || "",
+            retreatCost: card.retreatCost || "",
+            captured: card.inLibrary || false,
+            favorite: card.inLibrary || false,
+            isCard: true,
+            setName: card.setName || card.set,
+            cardId: card.id
+          };
+          openModal(state.selectedPokemon);
+        });
+      });
 
       renderDetail();
       return;
@@ -697,6 +1920,10 @@ function renderCards() {
 
     grid.innerHTML = visibleSets.map((setName, index) => {
       const isActive = state.selectedPokemon && state.selectedPokemon.name === setName;
+      const collectionMeta = getCollectionMeta(setName);
+      const imageMarkup = collectionMeta.image
+        ? `<img class="set-image" src="${collectionMeta.image}" alt="${collectionMeta.displayName}" />`
+        : `<span class="set-icon">🃏</span>`;
 
       return `
         <article class="pokemon-card set-card ${isActive ? "active" : ""}" data-set-name="${setName}">
@@ -706,12 +1933,12 @@ function renderCards() {
           </div>
 
           <div class="sprite-box set-box">
-            <span class="set-icon">🃏</span>
+            ${imageMarkup}
           </div>
 
           <div class="card-meta">
-            <h3>${setName}</h3>
-            <p>Coleção mundial de cartas Pokémon</p>
+            <h3>${collectionMeta.displayName}</h3>
+            <p>${collectionMeta.description}</p>
           </div>
 
           <div class="card-footer">
@@ -728,20 +1955,7 @@ function renderCards() {
 
         state.selectedCollection = setName;
         state.selectedCollectionCard = null;
-        state.selectedPokemon = {
-          id: worldCollections.indexOf(setName) + 1,
-          name: setName,
-          type: "Coleção",
-          typeKey: "normal",
-          region: "Mundo",
-          description: `Coleção oficial de cartas Pokémon do universo TCG com destaque em ${setName}.`,
-          favorite: false,
-          captured: false,
-          hp: 100,
-          attack: 100,
-          defense: 100,
-          image: ""
-        };
+        state.selectedPokemon = null;
 
         await fetchSetCards(setName);
         renderCards();
@@ -760,7 +1974,7 @@ function renderCards() {
   }
 
   if (!visible.length) {
-    grid.innerHTML = '<div class="pokemon-card" style="grid-column: 1 / -1; padding: 32px; text-align:center; color: var(--muted);">Nenhum Pokémon encontrado.</div>';
+    grid.innerHTML = '<div class="pokemon-card" style="grid-column: 1 / -1; padding: 32px; text-align:center; color: var(--muted);">Nenhum item na biblioteca.</div>';
     renderDetail();
     return;
   }
@@ -768,26 +1982,29 @@ function renderCards() {
   grid.innerHTML = visible.map((pokemon) => {
     const isActive = state.selectedPokemon && state.selectedPokemon.id === pokemon.id;
     const typeClass = getTypeClass(pokemon.typeKey);
+    const isCardItem = Boolean(pokemon.isCard);
 
     return `
       <article class="pokemon-card ${isActive ? "active" : ""}" data-id="${pokemon.id}">
         <div class="card-header">
-          <span class="card-id">#${String(pokemon.id).padStart(3, "0")}</span>
-          <span class="badge ${typeClass}">${pokemon.type}</span>
+          <span class="card-id">${isCardItem ? "📚" : `#${String(pokemon.id).padStart(3, "0")}`}</span>
+          <span class="badge ${isCardItem ? "normal" : typeClass}">${isCardItem ? "Carta" : pokemon.type}</span>
         </div>
 
-        <div class="sprite-box">
-          <img src="${pokemon.image}" alt="${pokemon.name}" />
+        <div class="sprite-box ${isCardItem ? "set-box" : ""}">
+          ${pokemon.image
+            ? `<img src="${pokemon.image}" alt="${pokemon.name}" />`
+            : (isCardItem ? '<span class="set-icon">🃏</span>' : '<img src="" alt="${pokemon.name}" />')}
         </div>
 
         <div class="card-meta">
           <h3>${pokemon.name}</h3>
-          <p>${pokemon.region}</p>
+          <p>${isCardItem ? `${pokemon.region} · ${pokemon.type}` : pokemon.region}</p>
         </div>
 
         <div class="card-footer">
-          <span>${pokemon.captured ? "Capturado" : "Na lista"}</span>
-          <button class="star-button ${pokemon.favorite ? "active" : ""}" data-star-id="${pokemon.id}" aria-label="Adicionar à minha biblioteca">
+          <span>${isCardItem ? "Na biblioteca" : (pokemon.captured ? "Capturado" : "Na lista")}</span>
+          <button class="star-button ${pokemon.favorite ? "active" : ""}" data-star-id="${pokemon.id}" data-card-id="${isCardItem ? pokemon.cardId : ""}" data-set-name="${isCardItem ? pokemon.setName : ""}" aria-label="${isCardItem ? "Remover da minha biblioteca" : "Adicionar à minha biblioteca"}">
             ${pokemon.favorite ? "⭐" : "☆"}
           </button>
         </div>
@@ -799,12 +2016,12 @@ function renderCards() {
     card.addEventListener("click", (event) => {
       if (event.target.closest(".star-button")) return;
 
-      const id = Number(card.dataset.id);
-      const pokemon = state.pokemonData.find((item) => item.id === id);
+      const id = card.dataset.id;
+      const pokemon = visible.find((item) => String(item.id) === String(id));
       if (pokemon) {
         state.selectedPokemon = pokemon;
-        renderCards();
         renderDetail();
+        openModal(pokemon);
       }
     });
   });
@@ -812,7 +2029,11 @@ function renderCards() {
   grid.querySelectorAll(".star-button").forEach((button) => {
     button.addEventListener("click", (event) => {
       event.stopPropagation();
-      toggleFavoritePokemon(Number(button.dataset.starId));
+      if (button.dataset.cardId) {
+        toggleLibraryCard(button.dataset.setName, button.dataset.cardId);
+      } else {
+        toggleFavoritePokemon(Number(button.dataset.starId));
+      }
     });
   });
 }
@@ -829,7 +2050,7 @@ function renderCollectionsLibrary() {
           <span>${selectedCards.length} cartas</span>
         </div>
         <ul>
-          ${selectedCards.map((card) => `<li>${card.number} · ${card.name} · ${card.rarity}</li>`).join("")}
+          ${selectedCards.map((card) => `<li ${card.inLibrary ? 'style="background: rgba(255, 203, 5, 0.16); border-color: rgba(255, 203, 5, 0.45); color: #fce7a6;"' : ""}>${card.number} · ${card.name} · ${card.rarity}${card.inLibrary ? " ★" : ""}</li>`).join("")}
         </ul>
       `;
       return;
@@ -885,6 +2106,7 @@ function renderDetail() {
     }
 
     const { name, description, region } = state.selectedPokemon;
+    const collectionMeta = getCollectionMeta(name);
     const cards = collectionCatalog[name] || [];
     const totalCards = cards.length;
     const secretCards = cards.filter((card) => card.rarity.includes("Secret")).length;
@@ -893,20 +2115,22 @@ function renderDetail() {
       <div class="detail-top">
         <div>
           <span class="card-id">#${String(state.selectedPokemon.id).padStart(3, "0")}</span>
-          <h3>${name}</h3>
+          <h3>${collectionMeta.displayName}</h3>
         </div>
       </div>
 
       <div class="detail-photo">
-        <span class="set-icon" style="font-size: 5rem; line-height: 1;">🃏</span>
+        ${collectionMeta.image
+          ? `<img class="set-image" src="${collectionMeta.image}" alt="${collectionMeta.displayName}" />`
+          : '<span class="set-icon" style="font-size: 5rem; line-height: 1;">🃏</span>'}
       </div>
 
       <div class="detail-meta">
         <span class="badge normal">Coleção</span>
-        <span class="badge" style="background: rgba(255,255,255,0.04); color: #dfe7ff;">${region}</span>
+        <span class="badge" style="background: rgba(255,255,255,0.04); color: #dfe7ff;">${collectionMeta.displayName}</span>
       </div>
 
-      <p class="detail-para">${description}</p>
+      <p class="detail-para">${collectionMeta.description}</p>
 
       <div class="stats">
         <div class="stat-row">
@@ -985,9 +2209,189 @@ function renderDetail() {
   });
 }
 
-searchInput.addEventListener("input", (event) => {
-  state.currentSearch = event.target.value.trim();
+function switchToSetsForSearch() {
+  if (state.currentTab === "sets") return;
+
+  state.currentTab = "sets";
+  tabButtons.forEach((btn) => btn.classList.toggle("active", btn.dataset.tab === "sets"));
+  searchInput.placeholder = "Buscar coleção...";
+  state.selectedCollection = null;
+  state.selectedPokemon = {
+    id: 1,
+    name: worldCollections[0],
+    type: "Coleção",
+    typeKey: "normal",
+    region: "Mundo",
+    description: `Coleção oficial de cartas Pokémon do universo TCG com destaque em ${worldCollections[0]}.`,
+    favorite: false,
+    captured: false,
+    hp: 100,
+    attack: 100,
+    defense: 100,
+    image: ""
+  };
+}
+
+async function searchCardAndOpenModal() {
+  const requestId = ++latestSearchRequestId;
+  const searchTerm = state.currentSearch;
+  if (!searchTerm) {
+    state.searchResultCards = [];
+    renderCards();
+    return;
+  }
+
+  switchToSetsForSearch();
+
+  const isNumberSearch = isCardNumberQuery(searchTerm);
+  let matchedCard = null;
+
+  if (isNumberSearch) {
+    const exactSpecialCard = getSpecialCardByExactSearchTerm(searchTerm);
+    if (exactSpecialCard) {
+      matchedCard = exactSpecialCard;
+      state.selectedCollection = exactSpecialCard.setName || exactSpecialCard.set || null;
+    }
+
+    state.searchResultCards = [];
+  }
+
+  if (!isNumberSearch) {
+    const officialNameMatches = await searchOfficialCardsByName(searchTerm);
+    if (requestId !== latestSearchRequestId) return;
+
+    const fallbackLocalMatches = officialNameMatches.length ? [] : getLocalCardSearchMatches(searchTerm, 40);
+    const combinedMatches = officialNameMatches.length ? officialNameMatches : fallbackLocalMatches;
+
+    if (combinedMatches.length) {
+      const libraryIds = new Set(state.librarySetCards.map((card) => card.id));
+      state.searchResultCards = combinedMatches.map((card) => ({
+        ...card,
+        inLibrary: libraryIds.has(card.id)
+      }));
+      state.selectedCollection = null;
+      state.selectedCollectionCard = null;
+      state.selectedPokemon = null;
+      renderCards();
+      renderDetail();
+      return;
+    }
+
+    const officialNameMatch = await searchOfficialCardByName(searchTerm);
+    if (requestId !== latestSearchRequestId) return;
+    if (officialNameMatch?.card) {
+      state.selectedCollection = officialNameMatch.setName;
+      matchedCard = officialNameMatch.card;
+    }
+  }
+
+  const cardMatch = matchedCard ? null : getCardSearchMatch(searchTerm);
+
+  if (cardMatch?.setName) {
+    state.selectedCollection = cardMatch.setName;
+    state.selectedCollectionCard = null;
+    try {
+      await fetchSetCards(cardMatch.setName);
+    } catch (error) {
+      // Se a API falhar, seguimos com o card encontrado localmente.
+    }
+
+    if (requestId !== latestSearchRequestId) return;
+
+    if (cardMatch.card) {
+      const setCards = getCardsForSet(cardMatch.setName);
+      const catalogCard = setCards.find((item) => {
+        return item.id === cardMatch.card.id || normalizeCardSearchValue(item.number) === normalizeCardSearchValue(cardMatch.card.number);
+      });
+      matchedCard = catalogCard ? { ...catalogCard, ...cardMatch.card } : cardMatch.card;
+    }
+  }
+
+  if (!matchedCard && isNumberSearch) {
+    const fallbackCard = await searchTcgCardByExactNumber(searchTerm);
+    if (requestId !== latestSearchRequestId) return;
+    if (fallbackCard) {
+      matchedCard = fallbackCard;
+    }
+  }
+
+  if (isNumberSearch && (!matchedCard || matchedCard.generated || !matchedCard.image)) {
+    const officialMatch = await searchOfficialCardByExactNumber(searchTerm);
+    if (requestId !== latestSearchRequestId) return;
+    if (officialMatch?.card) {
+      state.selectedCollection = officialMatch.setName;
+      matchedCard = officialMatch.card;
+    }
+  }
+
+  if (!matchedCard && isNumberSearch) {
+    const normalizedTerm = normalizeCardSearchValue(searchTerm);
+    const [cardNumber, setTotal] = normalizedTerm.split('/');
+    matchedCard = {
+      id: `search-${normalizedTerm}`,
+      name: `Carta ${cardNumber} / ${setTotal}`,
+      type: "Carta",
+      rarity: "Desconhecida",
+      art: "Carta TCG",
+      set: `Set ${setTotal}`,
+      setName: `Set ${setTotal}`,
+      foil: "Normal",
+      image: "",
+      number: `${String(cardNumber).padStart(3, "0")}/${String(setTotal).padStart(3, "0")}`,
+      inLibrary: false
+    };
+  }
+
+  if (matchedCard) {
+    if (requestId !== latestSearchRequestId) return;
+
+    const cardItem = {
+      id: matchedCard.id,
+      name: matchedCard.name,
+      type: matchedCard.rarity,
+      typeKey: "normal",
+      region: matchedCard.setName || matchedCard.set || "Coleção",
+      description: `${matchedCard.art || "Carta Pokémon"} · ${matchedCard.number || searchTerm}`,
+      image: matchedCard.image || "",
+      hp: matchedCard.hp || 100,
+      attack: 100,
+      defense: 100,
+      number: matchedCard.number || "",
+      stage: matchedCard.stage || "",
+      level: matchedCard.level || "",
+      evolvesFrom: matchedCard.evolvesFrom || "",
+      attacks: Array.isArray(matchedCard.attacks) ? matchedCard.attacks : [],
+      weaknessText: matchedCard.weaknessText || "",
+      resistanceText: matchedCard.resistanceText || "",
+      retreatCost: matchedCard.retreatCost || "",
+      captured: matchedCard.inLibrary || false,
+      favorite: matchedCard.inLibrary || false,
+      isCard: true,
+      setName: matchedCard.setName || matchedCard.set,
+      cardId: matchedCard.id
+    };
+    state.selectedPokemon = cardItem;
+    openModal(cardItem);
+  }
+
   renderCards();
+}
+
+searchInput.addEventListener("input", (event) => {
+  latestSearchRequestId += 1;
+  state.currentSearch = event.target.value.trim();
+  state.searchResultCards = [];
+
+  if (state.currentTab === "sets") {
+    renderCards();
+  }
+});
+
+searchInput.addEventListener("keydown", async (event) => {
+  if (event.key !== "Enter") return;
+  event.preventDefault();
+  state.currentSearch = searchInput.value.trim();
+  await searchCardAndOpenModal();
 });
 
 filterButtons.forEach((button) => {
@@ -1009,6 +2413,7 @@ tabButtons.forEach((button) => {
     if (state.currentTab === "sets") {
       searchInput.placeholder = "Buscar coleção...";
       state.selectedCollection = null;
+      state.searchResultCards = [];
       state.selectedPokemon = {
         id: 1,
         name: worldCollections[0],
@@ -1024,6 +2429,7 @@ tabButtons.forEach((button) => {
         image: ""
       };
     } else {
+      state.searchResultCards = [];
       searchInput.placeholder = state.currentTab === "library" ? "Buscar na minha biblioteca..." : "Buscar Pokémon...";
     }
 
@@ -1038,12 +2444,13 @@ function focusSearch() {
 }
 
 async function init() {
-  grid.innerHTML = '<div class="pokemon-card" style="grid-column: 1 / -1; padding: 32px; text-align:center; color: var(--muted);">Carregando 1.025 Pokémon...</div>';
+  grid.innerHTML = '<div class="pokemon-card" style="grid-column: 1 / -1; padding: 32px; text-align:center; color: var(--muted);">Carregando Pokémon e coleções oficiais...</div>';
 
   state.currentSearch = "";
   searchInput.value = "";
   searchInput.placeholder = "Buscar Pokémon...";
 
+  await loadCollectionMetadata();
   state.pokemonData = await loadPokemonData();
   state.selectedPokemon = state.pokemonData[0];
   await fetchSetCards("Base Set");
@@ -1052,5 +2459,15 @@ async function init() {
   renderCards();
   renderDetail();
 }
+
+document.querySelectorAll("[data-close-modal]").forEach((element) => {
+  element.addEventListener("click", closeModal);
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeModal();
+  }
+});
 
 init();

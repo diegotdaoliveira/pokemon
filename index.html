@@ -11,6 +11,13 @@
   </head>
   <body>
     <div class="page-shell">
+      <div id="detail-modal" class="detail-modal hidden" aria-hidden="true">
+        <div class="detail-modal-backdrop" data-close-modal="true"></div>
+        <div class="detail-modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+          <button class="modal-close" type="button" data-close-modal="true" aria-label="Fechar">×</button>
+          <div id="modal-content"></div>
+        </div>
+      </div>
       <header class="topbar">
         <div class="brand">
           <span class="brand-mark">⚡</span>
@@ -50,7 +57,7 @@
               <strong id="total-count">0</strong>
             </div>
             <div class="stat-card">
-              <span>Capturados</span>
+              <span>Na biblioteca</span>
               <strong id="captured-count">0</strong>
             </div>
             <div class="stat-card">

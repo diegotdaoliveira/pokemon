@@ -377,6 +377,14 @@ button, input { font: inherit; }
   background: linear-gradient(135deg, rgba(255, 203, 5, 0.18), rgba(78, 205, 196, 0.08));
 }
 
+.set-image {
+  width: 100%;
+  max-width: 100px;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.28));
+}
+
 .set-icon {
   font-size: 2.6rem;
   display: block;
@@ -385,6 +393,10 @@ button, input { font: inherit; }
 
 .set-card .card-footer {
   justify-content: flex-end;
+}
+
+.set-card-detail .card-footer {
+  justify-content: space-between;
 }
 
 .star-button {
@@ -407,6 +419,178 @@ button, input { font: inherit; }
 }
 
 .detail-panel { position: sticky; top: 24px; }
+
+.detail-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+}
+
+.detail-modal.hidden {
+  display: none;
+}
+
+.detail-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 6, 23, 0.75);
+  backdrop-filter: blur(6px);
+}
+
+.detail-modal-card {
+  position: relative;
+  width: min(760px, 100%);
+  max-height: min(88vh, 900px);
+  overflow: auto;
+  background: linear-gradient(180deg, rgba(17, 24, 39, 0.98), rgba(12, 17, 27, 0.98));
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 28px;
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.45);
+}
+
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  color: var(--text);
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.modal-body {
+  display: grid;
+  gap: 18px;
+}
+
+.modal-body--enhanced {
+  gap: 16px;
+}
+
+.modal-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255, 203, 5, 0.14), rgba(78, 205, 196, 0.12));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.modal-hero h3 {
+  margin: 6px 0 0;
+  font-size: clamp(1.6rem, 3vw, 2.2rem);
+}
+
+.modal-subtitle {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.94rem;
+}
+
+.modal-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.modal-section {
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+}
+
+.modal-section h4 {
+  margin: 0 0 10px;
+  font-size: 0.95rem;
+  color: #f8fafc;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.modal-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.modal-meta-card {
+  padding: 14px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--line);
+}
+
+.modal-meta-card span {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.modal-meta-card strong {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.modal-image {
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  border-radius: 20px;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.16), rgba(255,255,255,0.03));
+  border: 1px solid var(--line);
+}
+
+.modal-image img {
+  width: min(100%, 360px);
+  max-width: 360px;
+  max-height: 460px;
+  height: auto;
+  object-fit: contain;
+}
+
+.modal-description {
+  color: var(--muted);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.modal-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.modal-tags span {
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255, 203, 5, 0.12);
+  border: 1px solid rgba(255, 203, 5, 0.35);
+  color: #fce7a6;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
 
 .pokemon-detail {
   background: linear-gradient(180deg, rgba(17, 24, 39, 0.96), rgba(12, 17, 27, 0.96));
@@ -444,8 +628,9 @@ button, input { font: inherit; }
 }
 
 .detail-photo img {
-  width: 150px;
-  height: 150px;
+  width: min(100%, 220px);
+  height: auto;
+  max-height: 300px;
   object-fit: contain;
 }
 
