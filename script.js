@@ -1305,6 +1305,21 @@ function isExactCardNumberMatch(leftValue, rightValue) {
   return normalizeExactCardNumber(leftValue) === normalizeExactCardNumber(rightValue);
 }
 
+function findExactCardAcrossCollections(searchTerm) {
+  const exactTerm = normalizeExactCardNumber(searchTerm);
+  if (!exactTerm) return null;
+
+  for (const setName of worldCollections) {
+    const cards = getCardsForSet(setName);
+    const exactCard = cards.find((card) => isExactCardNumberMatch(card.number, exactTerm));
+    if (exactCard) {
+      return { setName, card: exactCard };
+    }
+  }
+
+  return null;
+}
+
 function findCardByQuery(cards, searchTerm, setName = null) {
   const normalizedTerm = normalizeCardSearchValue(searchTerm);
   const normalizedTextTerm = normalizeTextSearchValue(searchTerm);
@@ -1359,37 +1374,19 @@ function findCardByQuery(cards, searchTerm, setName = null) {
 
 function getCardSearchMatch(searchTerm) {
   const normalizedTerm = normalizeCardSearchValue(searchTerm);
-  const exactSearchTerm = normalizeExactCardNumber(searchTerm);
   if (!normalizedTerm) return null;
 
   const directNumberMatch = normalizedTerm.match(/^(\d{1,3})\/(\d{1,3})$/);
   if (directNumberMatch) {
-    const [, cardNumber, total] = directNumberMatch;
-    const targetTotal = String(total).padStart(3, "0");
-
-    const candidateSets = worldCollections.filter((setName) => String(getSetCardTotal(setName)).padStart(3, "0") === targetTotal);
-    for (const matchingSet of candidateSets) {
-      const exactOverride = getSpecialCardByExactNumber(matchingSet, normalizedTerm);
-      if (exactOverride) {
-        return {
-          setName: matchingSet,
-          card: {
-            ...exactOverride,
-            set: matchingSet,
-            total: Number(total),
-            inLibrary: false
-          }
-        };
-      }
-
-      const cards = getCardsForSet(matchingSet);
-      const card = findCardByQuery(cards, normalizedTerm, matchingSet);
-      if (card && isExactCardNumberMatch(card.number, exactSearchTerm)) {
-        return { setName: matchingSet, card };
-      }
+    const exactOverride = getSpecialCardByExactNumber(null, normalizedTerm);
+    if (exactOverride) {
+      return {
+        setName: exactOverride.setName || exactOverride.set || null,
+        card: exactOverride
+      };
     }
 
-    return null;
+    return findExactCardAcrossCollections(searchTerm);
   }
 
   for (const setName of worldCollections) {
@@ -2261,6 +2258,14 @@ async function searchCardAndOpenModal() {
       state.selectedCollection = exactSpecialCard.setName || exactSpecialCard.set || null;
     }
 
+    if (!matchedCard) {
+      const exactMatch = findExactCardAcrossCollections(searchTerm);
+      if (exactMatch?.card) {
+        state.selectedCollection = exactMatch.setName;
+        matchedCard = exactMatch.card;
+      }
+    }
+
     state.searchResultCards = [];
   }
 
@@ -2312,23 +2317,6 @@ async function searchCardAndOpenModal() {
         return item.id === cardMatch.card.id || normalizeCardSearchValue(item.number) === normalizeCardSearchValue(cardMatch.card.number);
       });
       matchedCard = catalogCard ? { ...catalogCard, ...cardMatch.card } : cardMatch.card;
-    }
-  }
-
-  if (!matchedCard && isNumberSearch) {
-    const fallbackCard = await searchTcgCardByExactNumber(searchTerm);
-    if (requestId !== latestSearchRequestId) return;
-    if (fallbackCard) {
-      matchedCard = fallbackCard;
-    }
-  }
-
-  if (isNumberSearch && (!matchedCard || matchedCard.generated || !matchedCard.image)) {
-    const officialMatch = await searchOfficialCardByExactNumber(searchTerm);
-    if (requestId !== latestSearchRequestId) return;
-    if (officialMatch?.card) {
-      state.selectedCollection = officialMatch.setName;
-      matchedCard = officialMatch.card;
     }
   }
 
