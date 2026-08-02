@@ -531,7 +531,7 @@ async function loadPokemonData() {
         typeLabels,
         region: "Pokédex Oficial",
         favorite: false,
-        captured: detail.id % 2 === 0,
+        captured: false,
         description: `Pokémon oficial da Pokédex com tipo ${typeLabels.join(" / ")}.`,
         collections,
         hp: detail.stats?.[0]?.base_stat || 50,
@@ -1524,7 +1524,7 @@ function toggleFavoritePokemon(pokemonId) {
   if (!pokemon) return;
 
   pokemon.favorite = !pokemon.favorite;
-  pokemon.captured = pokemon.favorite || pokemon.captured;
+  pokemon.captured = pokemon.favorite;
 
   if (state.selectedPokemon && state.selectedPokemon.id === pokemonId) {
     state.selectedPokemon = pokemon;
@@ -2003,7 +2003,7 @@ function renderCards() {
         </div>
 
         <div class="card-footer">
-          <span>${isCardItem ? "Na biblioteca" : (pokemon.captured ? "Capturado" : "Na lista")}</span>
+          <span>${isCardItem ? "Capturado" : (pokemon.captured ? "Capturado" : "Na lista")}</span>
           <button class="star-button ${pokemon.favorite ? "active" : ""}" data-star-id="${pokemon.id}" data-card-id="${isCardItem ? pokemon.cardId : ""}" data-set-name="${isCardItem ? pokemon.setName : ""}" aria-label="${isCardItem ? "Remover da minha biblioteca" : "Adicionar à minha biblioteca"}">
             ${pokemon.favorite ? "⭐" : "☆"}
           </button>
