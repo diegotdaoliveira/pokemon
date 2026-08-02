@@ -627,6 +627,68 @@ const specialExactNumberCards = {
     set: "Celebrations",
     total: 25
   },
+  "25/25": {
+    id: "cel25-25-mew",
+    number: "25/25",
+    name: "Mew",
+    rarity: "Holo Rare",
+    art: "Carta Pokémon",
+    image: "https://images.pokemontcg.io/cel25/25_hires.png",
+    foil: "Prismático",
+    supertype: "Pokémon",
+    hp: 60,
+    stage: "Básico",
+    evolvesFrom: "",
+    attacks: [
+      {
+        name: "Mysterious Tail",
+        damage: "",
+        text: "Ajuste especial para a busca exata por 25/25."
+      },
+      {
+        name: "Psyshot",
+        damage: "30",
+        text: "Ajuste especial para a busca exata por 25/25."
+      }
+    ],
+    weaknessText: "Darkness ×2",
+    resistanceText: "Fighting -30",
+    retreatCost: "1",
+    setName: "Celebrations",
+    set: "Celebrations",
+    total: 25
+  },
+  "025/025": {
+    id: "cel25-25-mew",
+    number: "025/025",
+    name: "Mew",
+    rarity: "Holo Rare",
+    art: "Carta Pokémon",
+    image: "https://images.pokemontcg.io/cel25/25_hires.png",
+    foil: "Prismático",
+    supertype: "Pokémon",
+    hp: 60,
+    stage: "Básico",
+    evolvesFrom: "",
+    attacks: [
+      {
+        name: "Mysterious Tail",
+        damage: "",
+        text: "Ajuste especial para a busca exata por 025/025."
+      },
+      {
+        name: "Psyshot",
+        damage: "30",
+        text: "Ajuste especial para a busca exata por 025/025."
+      }
+    ],
+    weaknessText: "Darkness ×2",
+    resistanceText: "Fighting -30",
+    retreatCost: "1",
+    setName: "Celebrations",
+    set: "Celebrations",
+    total: 25
+  },
   "004/025": {
     id: "cel25-4-palkia",
     number: "004/025",
