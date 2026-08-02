@@ -310,6 +310,32 @@ const specialExactNumberCards = {
     set: "Celebrations",
     total: 25
   },
+  "3/25": {
+    id: "mcd21-3-treecko",
+    number: "3/25",
+    name: "Treecko",
+    rarity: "Common",
+    art: "Carta Pokémon",
+    image: "https://images.pokemontcg.io/mcd21/3_hires.png",
+    foil: "Prismático",
+    supertype: "Pokémon",
+    hp: 60,
+    stage: "Básico",
+    evolvesFrom: "",
+    attacks: [
+      {
+        name: "Quick Attack",
+        damage: "10",
+        text: "Ajuste especial para a busca exata por 3/25."
+      }
+    ],
+    weaknessText: "Fogo x2",
+    resistanceText: "—",
+    retreatCost: "1",
+    setName: "Celebrations",
+    set: "Celebrations",
+    total: 25
+  },
   "1/25": {
     id: "cel25-1",
     number: "1/25",
@@ -332,6 +358,32 @@ const specialExactNumberCards = {
     weaknessText: "Fogo x2",
     resistanceText: "—",
     retreatCost: "1",
+    setName: "Celebrations",
+    set: "Celebrations",
+    total: 25
+  },
+  "003/025": {
+    id: "cel25-3-kyogre",
+    number: "003/025",
+    name: "Kyogre",
+    rarity: "Holo Rare",
+    art: "Carta Pokémon",
+    image: "https://images.pokemontcg.io/cel25/3_hires.png",
+    foil: "Prismático",
+    supertype: "Pokémon",
+    hp: 130,
+    stage: "Básico",
+    evolvesFrom: "",
+    attacks: [
+      {
+        name: "Aqua Storm",
+        damage: "80",
+        text: "Ajuste especial para a busca exata por 003/025."
+      }
+    ],
+    weaknessText: "Lightning ×2",
+    resistanceText: "—",
+    retreatCost: "2",
     setName: "Celebrations",
     set: "Celebrations",
     total: 25
@@ -362,6 +414,32 @@ const specialExactNumberCards = {
     set: "Celebrations",
     total: 25
   },
+  "4/25": {
+    id: "mcd21-4-turtwig",
+    number: "4/25",
+    name: "Turtwig",
+    rarity: "Common",
+    art: "Carta Pokémon",
+    image: "https://images.pokemontcg.io/mcd21/4_hires.png",
+    foil: "Prismático",
+    supertype: "Pokémon",
+    hp: 70,
+    stage: "Básico",
+    evolvesFrom: "",
+    attacks: [
+      {
+        name: "Tackle",
+        damage: "10",
+        text: "Ajuste especial para a busca exata por 4/25."
+      }
+    ],
+    weaknessText: "Fogo x2",
+    resistanceText: "—",
+    retreatCost: "1",
+    setName: "Celebrations",
+    set: "Celebrations",
+    total: 25
+  },
   "001/025": {
     id: "cel25-1-hooh",
     number: "001/025",
@@ -388,6 +466,32 @@ const specialExactNumberCards = {
     ],
     weaknessText: "Water ×2",
     resistanceText: "Fighting -30",
+    retreatCost: "2",
+    setName: "Celebrations",
+    set: "Celebrations",
+    total: 25
+  },
+  "004/025": {
+    id: "cel25-4-palkia",
+    number: "004/025",
+    name: "Palkia",
+    rarity: "Holo Rare",
+    art: "Carta Pokémon",
+    image: "https://images.pokemontcg.io/cel25/4_hires.png",
+    foil: "Prismático",
+    supertype: "Pokémon",
+    hp: 130,
+    stage: "Básico",
+    evolvesFrom: "",
+    attacks: [
+      {
+        name: "Overdrive Smash",
+        damage: "80",
+        text: "Ajuste especial para a busca exata por 004/025."
+      }
+    ],
+    weaknessText: "Lightning ×2",
+    resistanceText: "—",
     retreatCost: "2",
     setName: "Celebrations",
     set: "Celebrations",
