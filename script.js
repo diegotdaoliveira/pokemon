@@ -1220,34 +1220,31 @@ async function searchOfficialCardsByName(searchTerm) {
 
 function getVisiblePokemon() {
   const source = state.currentTab === "library"
-    ? [
-        ...state.pokemonData.filter((pokemon) => pokemon.favorite),
-        ...state.librarySetCards.map((card) => ({
-          id: `card-${card.id}`,
-          name: card.name,
-          type: card.rarity,
-          typeKey: "normal",
-          region: card.set,
-          favorite: true,
-          captured: true,
-          description: `${card.art} da coleção ${card.set}.`,
-          hp: card.hp || 100,
-          attack: 100,
-          defense: 100,
-          image: card.image || "",
-          number: card.number || "",
-          level: card.level || "",
-          stage: card.stage || "",
-          evolvesFrom: card.evolvesFrom || "",
-          attacks: Array.isArray(card.attacks) ? card.attacks : [],
-          weaknessText: card.weaknessText || "",
-          resistanceText: card.resistanceText || "",
-          retreatCost: card.retreatCost || "",
-          isCard: true,
-          setName: card.set,
-          cardId: card.id
-        }))
-      ]
+    ? state.librarySetCards.map((card) => ({
+        id: `card-${card.id}`,
+        name: card.name,
+        type: card.rarity,
+        typeKey: "normal",
+        region: card.set,
+        favorite: true,
+        captured: true,
+        description: `${card.art} da coleção ${card.set}.`,
+        hp: card.hp || 100,
+        attack: 100,
+        defense: 100,
+        image: card.image || "",
+        number: card.number || "",
+        level: card.level || "",
+        stage: card.stage || "",
+        evolvesFrom: card.evolvesFrom || "",
+        attacks: Array.isArray(card.attacks) ? card.attacks : [],
+        weaknessText: card.weaknessText || "",
+        resistanceText: card.resistanceText || "",
+        retreatCost: card.retreatCost || "",
+        isCard: true,
+        setName: card.set,
+        cardId: card.id
+      }))
     : state.pokemonData;
 
   return source.filter((pokemon) => {
@@ -1449,7 +1446,7 @@ async function searchTcgCardByExactNumber(searchTerm) {
 }
 
 function renderStats() {
-  const libraryItems = state.pokemonData.filter((pokemon) => pokemon.favorite || pokemon.captured).length + state.librarySetCards.length;
+  const libraryItems = state.librarySetCards.length;
   const favorite = state.pokemonData.filter((pokemon) => pokemon.favorite).length;
   const types = [...new Set(state.pokemonData.map((pokemon) => pokemon.type))].length;
 
