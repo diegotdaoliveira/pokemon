@@ -1717,8 +1717,66 @@ function extractCardNumberQuery(value) {
   return `${match[1]}/${match[2]}`;
 }
 
+function getEffectiveSearchTerm(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+
+  const numberInText = extractCardNumberQuery(raw);
+  if (numberInText) return numberInText;
+
+  const cleaned = raw
+    .replace(/\b(procuro|buscar|busca|carta|cartas|pokemon|pok[eé]mon|tcg|card|cards|a|o|de|do|da)\b/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  return cleaned || raw;
+}
+
 function isCardNumberQuery(value) {
   return Boolean(extractCardNumberQuery(value));
+}
+
+function buildAnySequenceCardFor25(searchTerm) {
+  const raw = String(searchTerm || "").trim();
+  const match = raw.match(/^(\d{1,3})\s*\/\s*(\d{1,3})$/);
+  if (!match) return null;
+
+  const rawCard = match[1];
+  const rawTotal = match[2];
+  const cardNumber = Number(rawCard);
+  const setTotal = Number(rawTotal);
+
+  if (!Number.isFinite(cardNumber) || !Number.isFinite(setTotal)) return null;
+  if (setTotal !== 25 || cardNumber < 1 || cardNumber > 25) return null;
+
+  const hasLeadingZeros = rawCard.length >= 3 || rawTotal.length >= 3 || rawCard.startsWith("0") || rawTotal.startsWith("0");
+  const preferCelebrations = hasLeadingZeros || cardNumber === 25;
+  const setCode = preferCelebrations ? "cel25" : "mcd21";
+  const formattedNumber = preferCelebrations
+    ? `${String(cardNumber).padStart(3, "0")}/025`
+    : `${cardNumber}/25`;
+
+  return {
+    id: `${setCode}-${cardNumber}-auto`,
+    number: formattedNumber,
+    name: `Carta ${formattedNumber}`,
+    rarity: preferCelebrations ? "Holo Rare" : "Common",
+    art: "Carta Pokémon",
+    image: `https://images.pokemontcg.io/${setCode}/${cardNumber}_hires.png`,
+    foil: preferCelebrations ? "Prismático" : "Normal",
+    supertype: "Pokémon",
+    hp: 100,
+    stage: "Básico",
+    evolvesFrom: "",
+    attacks: [],
+    weaknessText: "—",
+    resistanceText: "—",
+    retreatCost: "1",
+    setName: "Celebrations",
+    set: "Celebrations",
+    total: 25,
+    inLibrary: false
+  };
 }
 
 function normalizeCardNumber(value) {
@@ -2696,7 +2754,7 @@ function switchToSetsForSearch() {
 
 async function searchCardAndOpenModal() {
   const requestId = ++latestSearchRequestId;
-  const searchTerm = state.currentSearch;
+  const searchTerm = getEffectiveSearchTerm(state.currentSearch);
   if (!searchTerm) {
     state.searchResultCards = [];
     renderCards();
@@ -2723,6 +2781,10 @@ async function searchCardAndOpenModal() {
         state.selectedCollection = exactMatch.setName;
         matchedCard = exactMatch.card;
       }
+    }
+
+    if (!matchedCard) {
+      matchedCard = buildAnySequenceCardFor25(numberSearchTerm);
     }
 
     if (!matchedCard) {
