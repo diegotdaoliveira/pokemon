@@ -1295,10 +1295,19 @@ function normalizeCardNumber(value) {
   return card;
 }
 
+function normalizeExactCardNumber(value) {
+  return String(value || "")
+    .trim()
+    .replace(/\s+/g, "");
+}
+
+function isExactCardNumberMatch(leftValue, rightValue) {
+  return normalizeExactCardNumber(leftValue) === normalizeExactCardNumber(rightValue);
+}
+
 function findCardByQuery(cards, searchTerm, setName = null) {
   const normalizedTerm = normalizeCardSearchValue(searchTerm);
   const normalizedTextTerm = normalizeTextSearchValue(searchTerm);
-  const paddedSearchTerm = normalizeCardNumber(searchTerm);
   if (!normalizedTerm && !normalizedTextTerm) return null;
 
   const directNumberMatch = normalizedTerm.match(/^(\d{1,3})\/(\d{1,3})$/);
@@ -1317,7 +1326,9 @@ function findCardByQuery(cards, searchTerm, setName = null) {
     const targetNumber = Number(cardNumber);
     const targetTotal = Number(total);
 
-    const exactLiteralItem = cards.find((item) => normalizeCardSearchValue(item.number) === normalizedTerm);
+    const exactSearchTerm = normalizeExactCardNumber(searchTerm);
+
+    const exactLiteralItem = cards.find((item) => isExactCardNumberMatch(item.number, exactSearchTerm));
     if (exactLiteralItem) {
       return exactLiteralItem;
     }
@@ -1326,29 +1337,29 @@ function findCardByQuery(cards, searchTerm, setName = null) {
       const itemNumber = normalizeCardSearchValue(item.number);
       const itemMatch = itemNumber.match(/^(\d{1,3})\/(\d{1,3})$/);
       if (!itemMatch) return false;
-      return Number(itemMatch[1]) === targetNumber && Number(itemMatch[2]) === targetTotal;
+      return Number(itemMatch[1]) === targetNumber && Number(itemMatch[2]) === targetTotal && isExactCardNumberMatch(item.number, exactSearchTerm);
     });
 
     if (exactItem) {
       return exactItem;
     }
 
-    return cards.find((item) => normalizeCardNumber(item.number) === paddedSearchTerm);
+    return cards.find((item) => isExactCardNumberMatch(item.number, exactSearchTerm));
   }
 
   return cards.find((item) => {
     const numberValue = normalizeCardSearchValue(item.number);
-    const paddedNumberValue = normalizeCardNumber(item.number);
     const nameValue = normalizeTextSearchValue(item.name);
     const rarityValue = normalizeTextSearchValue(item.rarity);
 
-    return (normalizedTerm && (numberValue.includes(normalizedTerm) || paddedNumberValue.includes(paddedSearchTerm)))
+    return (normalizedTerm && numberValue.includes(normalizedTerm))
       || (normalizedTextTerm && (nameValue.includes(normalizedTextTerm) || rarityValue.includes(normalizedTextTerm)));
   });
 }
 
 function getCardSearchMatch(searchTerm) {
   const normalizedTerm = normalizeCardSearchValue(searchTerm);
+  const exactSearchTerm = normalizeExactCardNumber(searchTerm);
   if (!normalizedTerm) return null;
 
   const directNumberMatch = normalizedTerm.match(/^(\d{1,3})\/(\d{1,3})$/);
@@ -1373,7 +1384,7 @@ function getCardSearchMatch(searchTerm) {
 
       const cards = getCardsForSet(matchingSet);
       const card = findCardByQuery(cards, normalizedTerm, matchingSet);
-      if (card) {
+      if (card && isExactCardNumberMatch(card.number, exactSearchTerm)) {
         return { setName: matchingSet, card };
       }
     }
