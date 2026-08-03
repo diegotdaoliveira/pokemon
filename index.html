@@ -10,7 +10,26 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <div class="page-shell">
+    <div id="auth-gate" class="auth-gate">
+      <div class="auth-gate-card">
+        <div class="auth-gate-header">
+          <p class="auth-gate-kicker">Acesso obrigatório</p>
+          <h3>Entre para abrir a dashboard</h3>
+          <p id="auth-status">Faça login para salvar sua biblioteca online.</p>
+        </div>
+        <form id="auth-form" class="auth-form">
+          <input id="auth-email" type="email" placeholder="E-mail" required />
+          <input id="auth-password" type="password" placeholder="Senha" required />
+          <div class="auth-actions">
+            <button type="submit" class="primary-btn">Entrar</button>
+            <button type="button" id="auth-switch" class="secondary-btn">Criar conta</button>
+          </div>
+        </form>
+        <button id="auth-logout" class="secondary-btn hidden">Sair</button>
+      </div>
+    </div>
+
+    <div class="page-shell hidden">
       <div id="detail-modal" class="detail-modal hidden" aria-hidden="true">
         <div class="detail-modal-backdrop" data-close-modal="true"></div>
         <div class="detail-modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title">

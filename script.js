@@ -88,34 +88,8 @@ function getAuthStatusMessage() {
 }
 
 function createAuthPanel() {
-  if (authUiInitialized || document.getElementById("auth-panel")) {
+  if (authUiInitialized) {
     return;
-  }
-
-  const authPanel = document.createElement("section");
-  authPanel.id = "auth-panel";
-  authPanel.className = "auth-panel";
-  authPanel.innerHTML = `
-    <div class="auth-card">
-      <div class="auth-header">
-        <h3>Conta online</h3>
-        <p id="auth-status">${getAuthStatusMessage()}</p>
-      </div>
-      <form id="auth-form" class="auth-form">
-        <input id="auth-email" type="email" placeholder="E-mail" required />
-        <input id="auth-password" type="password" placeholder="Senha" required />
-        <div class="auth-actions">
-          <button type="submit" class="primary-btn">Entrar</button>
-          <button type="button" id="auth-switch" class="secondary-btn">Criar conta</button>
-        </div>
-      </form>
-      <button id="auth-logout" class="secondary-btn hidden">Sair</button>
-    </div>
-  `;
-
-  const toolbar = document.querySelector(".toolbar");
-  if (toolbar) {
-    toolbar.insertAdjacentElement("afterend", authPanel);
   }
 
   authUiInitialized = true;
@@ -178,6 +152,8 @@ function updateAuthUi() {
   const form = document.getElementById("auth-form");
   const emailInput = document.getElementById("auth-email");
   const passwordInput = document.getElementById("auth-password");
+  const authGate = document.getElementById("auth-gate");
+  const appShell = document.querySelector(".page-shell");
 
   if (status) {
     status.textContent = getAuthStatusMessage();
@@ -189,6 +165,14 @@ function updateAuthUi() {
 
   if (form) {
     form.classList.toggle("hidden", Boolean(currentUser));
+  }
+
+  if (authGate) {
+    authGate.classList.toggle("hidden", Boolean(currentUser));
+  }
+
+  if (appShell) {
+    appShell.classList.toggle("hidden", !currentUser);
   }
 
   if (emailInput) {
