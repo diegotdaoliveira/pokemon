@@ -131,6 +131,54 @@ button, input { font: inherit; }
   margin-top: 26px;
 }
 
+.auth-panel {
+  margin: 16px 0 24px;
+}
+
+.auth-card {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(17, 24, 39, 0.92);
+  box-shadow: 0 16px 32px var(--shadow);
+}
+
+.auth-header h3 {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+}
+
+.auth-header p {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.auth-form input {
+  flex: 1 1 220px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+}
+
+.auth-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.hidden {
+  display: none !important;
+}
+
 .primary-btn,
 .secondary-btn,
 .filter-btn,

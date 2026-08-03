@@ -1,5 +1,11 @@
 const API_URL = "https://pokeapi.co/api/v2";
 
+const AUTH_STORAGE_KEY = "pokemon-dashboard-auth";
+const LIBRARY_COLLECTION = "users";
+let firebaseReady = false;
+let currentUser = null;
+let authUiInitialized = false;
+
 const typeMap = {
   normal: "Normal",
   fire: "Fogo",
@@ -56,6 +62,205 @@ const typeEffectiveness = {
 function getTypeLabels(types = []) {
   return (Array.isArray(types) ? types : [types]).filter(Boolean).map((type) => typeMap[type] || titleCase(type));
 }
+
+function titleCase(value) {
+  return String(value || "")
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+}
+
+function normalizeLibraryEntry(entry) {
+  return {
+    ...entry,
+    id: entry.id || entry.cardId || entry.name,
+    setName: entry.setName || entry.set || entry.collection || "",
+    cardId: entry.cardId || entry.id || entry.name,
+    captured: Boolean(entry.captured),
+    favorite: Boolean(entry.favorite)
+  };
+}
+
+function getAuthStatusMessage() {
+  if (!currentUser) return "Faça login para salvar sua biblioteca online.";
+  return `Conectado como ${currentUser.email || "usuário"}.`;
+}
+
+function createAuthPanel() {
+  if (authUiInitialized || document.getElementById("auth-panel")) {
+    return;
+  }
+
+  const authPanel = document.createElement("section");
+  authPanel.id = "auth-panel";
+  authPanel.className = "auth-panel";
+  authPanel.innerHTML = `
+    <div class="auth-card">
+      <div class="auth-header">
+        <h3>Conta online</h3>
+        <p id="auth-status">${getAuthStatusMessage()}</p>
+      </div>
+      <form id="auth-form" class="auth-form">
+        <input id="auth-email" type="email" placeholder="E-mail" required />
+        <input id="auth-password" type="password" placeholder="Senha" required />
+        <div class="auth-actions">
+          <button type="submit" class="primary-btn">Entrar</button>
+          <button type="button" id="auth-switch" class="secondary-btn">Criar conta</button>
+        </div>
+      </form>
+      <button id="auth-logout" class="secondary-btn hidden">Sair</button>
+    </div>
+  `;
+
+  const toolbar = document.querySelector(".toolbar");
+  if (toolbar) {
+    toolbar.insertAdjacentElement("afterend", authPanel);
+  }
+
+  authUiInitialized = true;
+  bindAuthEvents();
+}
+
+function bindAuthEvents() {
+  const form = document.getElementById("auth-form");
+  const switchButton = document.getElementById("auth-switch");
+  const logoutButton = document.getElementById("auth-logout");
+  const emailInput = document.getElementById("auth-email");
+  const passwordInput = document.getElementById("auth-password");
+  const status = document.getElementById("auth-status");
+
+  if (!form || !switchButton || !logoutButton || !emailInput || !passwordInput || !status) {
+    return;
+  }
+
+  let isSignUp = false;
+
+  switchButton.addEventListener("click", () => {
+    isSignUp = !isSignUp;
+    switchButton.textContent = isSignUp ? "Já tenho conta" : "Criar conta";
+    form.querySelector('button[type="submit"]').textContent = isSignUp ? "Criar conta" : "Entrar";
+  });
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const email = emailInput.value.trim();
+    const password = passwordInput.value.trim();
+
+    if (!email || !password) {
+      status.textContent = "Informe e-mail e senha.";
+      return;
+    }
+
+    try {
+      if (isSignUp) {
+        await window.firebaseAuth.createUserWithEmailAndPassword(email, password);
+      } else {
+        await window.firebaseAuth.signInWithEmailAndPassword(email, password);
+      }
+    } catch (error) {
+      status.textContent = error.message || "Falha ao autenticar.";
+    }
+  });
+
+  logoutButton.addEventListener("click", async () => {
+    try {
+      await window.firebaseAuth.signOut();
+    } catch (error) {
+      console.error(error);
+    }
+  });
+}
+
+function updateAuthUi() {
+  const status = document.getElementById("auth-status");
+  const logoutButton = document.getElementById("auth-logout");
+  const form = document.getElementById("auth-form");
+  const emailInput = document.getElementById("auth-email");
+  const passwordInput = document.getElementById("auth-password");
+
+  if (status) {
+    status.textContent = getAuthStatusMessage();
+  }
+
+  if (logoutButton) {
+    logoutButton.classList.toggle("hidden", !currentUser);
+  }
+
+  if (form) {
+    form.classList.toggle("hidden", Boolean(currentUser));
+  }
+
+  if (emailInput) {
+    emailInput.value = "";
+  }
+  if (passwordInput) {
+    passwordInput.value = "";
+  }
+}
+
+function persistLibraryToFirebase() {
+  if (!firebaseReady || !window.firebaseDb || !currentUser) {
+    return Promise.resolve();
+  }
+
+  const normalized = state.librarySetCards.map(normalizeLibraryEntry);
+  return window.firebaseDb.collection(LIBRARY_COLLECTION).doc(currentUser.uid).set({
+    uid: currentUser.uid,
+    email: currentUser.email,
+    library: normalized,
+    updatedAt: new Date().toISOString()
+  }, { merge: true });
+}
+
+function loadLibraryFromFirebase() {
+  if (!firebaseReady || !window.firebaseDb || !currentUser) {
+    return Promise.resolve();
+  }
+
+  return window.firebaseDb.collection(LIBRARY_COLLECTION).doc(currentUser.uid).get().then((snapshot) => {
+    if (!snapshot.exists) {
+      return;
+    }
+
+    const payload = snapshot.data() || {};
+    const storedLibrary = Array.isArray(payload.library) ? payload.library : [];
+    state.librarySetCards = storedLibrary.map(normalizeLibraryEntry);
+    state.selectedPokemon = { ...state.selectedPokemon };
+    renderLibrary();
+    renderStats();
+  });
+}
+
+function initializeFirebaseClient() {
+  if (firebaseReady) {
+    return;
+  }
+
+  if (!window.firebaseAuth || !window.firebaseDb) {
+    window.addEventListener("firebase-ready", initializeFirebaseClient, { once: true });
+    return;
+  }
+
+  firebaseReady = true;
+  createAuthPanel();
+
+  window.firebaseAuth.onAuthStateChanged((user) => {
+    currentUser = user;
+    updateAuthUi();
+    if (user) {
+      loadLibraryFromFirebase().finally(() => {
+        persistLibraryToFirebase().catch(console.error);
+      });
+    }
+  });
+}
+
+window.addEventListener("firebase-ready", () => {
+  initializeFirebaseClient();
+});
+
+window.addEventListener("load", initializeFirebaseClient);
 
 function getWeaknesses(types = []) {
   const typeList = Array.isArray(types) ? types : [types].filter(Boolean);
@@ -2176,6 +2381,7 @@ function toggleLibraryCard(setName, cardId, cardPayload = null) {
   renderCards();
   renderCollectionsLibrary();
   renderDetail();
+  persistLibraryToFirebase().catch(console.error);
 }
 
 function toggleFavoritePokemon(pokemonId) {
@@ -2192,6 +2398,7 @@ function toggleFavoritePokemon(pokemonId) {
   renderStats();
   renderCards();
   renderDetail();
+  persistLibraryToFirebase().catch(console.error);
 }
 
 function openModal(item) {
