@@ -392,6 +392,11 @@ const collectionTranslations = {
 let worldCollections = Object.keys(collectionTranslations);
 const collectionMetadataByName = new Map();
 
+// Mapa reverso: nome em português → nome em inglês (chave do collectionIds)
+const displayNameToEnglish = Object.fromEntries(
+  Object.entries(collectionTranslations).map(([english, portuguese]) => [portuguese, english])
+);
+
 const specialSetCards = {
   "Secret Wonders": {
     "3/132": {
@@ -466,6 +471,36 @@ const specialSetCards = {
         }
       ],
       weaknessText: "Fogo x2",
+      resistanceText: "—",
+      retreatCost: "1"
+    }
+  },
+  "Diamond & Pearl": {
+    "003/130": {
+      id: "dp1-3",
+      number: "003/130",
+      name: "Chansey",
+      rarity: "Rare Holo",
+      art: "Carta Pokémon",
+      image: "https://images.pokemontcg.io/dp1/3.png",
+      foil: "Prismático",
+      supertype: "Pokémon",
+      hp: 120,
+      stage: "Básico",
+      evolvesFrom: "",
+      attacks: [
+        {
+          name: "Scrunch",
+          damage: "",
+          text: "Lance uma moeda. Se der cara, previna todo o dano causado a Chansey durante o turno do oponente (efeitos ainda são aplicados)."
+        },
+        {
+          name: "Double-edge",
+          damage: "80",
+          text: "Chansey sofre 80 de dano."
+        }
+      ],
+      weaknessText: "Lutador +20",
       resistanceText: "—",
       retreatCost: "1"
     }
@@ -705,6 +740,32 @@ const specialExactNumberCards = {
     retreatCost: "1",
     setName: "Celebrations",
     set: "Celebrations",
+    total: 25
+  },
+  "21/25": {
+    id: "mcd21-21-oshawott",
+    number: "21/25",
+    name: "Oshawott",
+    rarity: "Common",
+    art: "Carta Pokémon",
+    image: "https://images.pokemontcg.io/mcd21/21_hires.png",
+    foil: "Prismático",
+    supertype: "Pokémon",
+    hp: 60,
+    stage: "Básico",
+    evolvesFrom: "",
+    attacks: [
+      {
+        name: "Water Pulse",
+        damage: "20",
+        text: "Lance uma moeda. Se der cara, o Pokémon Defensor fica Dormindo."
+      }
+    ],
+    weaknessText: "Elétrico x2",
+    resistanceText: "—",
+    retreatCost: "1",
+    setName: "McDonald's Collection 2021",
+    set: "McDonald's Collection 2021",
     total: 25
   },
   "001/025": {
@@ -1472,12 +1533,17 @@ function buildSetCards(setName, totalCards = null) {
   return Array.from({ length: actualTotal }, (_, index) => {
     const numberValue = index + 1;
     const number = `${String(numberValue).padStart(3, "0")}/${String(actualTotal).padStart(3, "0")}`;
-    const override = specialSetCards[setName]?.[numberValue];
+    // Tenta chaves com e sem zeros à esquerda para compatibilidade com specialSetCards
+    const override = specialSetCards[setName]?.[number]
+      || specialSetCards[setName]?.[`${numberValue}/${actualTotal}`]
+      || specialSetCards[setName]?.[numberValue];
     const pokemonName = override?.name || baseNames[index % baseNames.length];
     const rarity = override?.rarity || rarities[index % rarities.length];
     const art = override?.art || (rarity === "Secret Rare" ? "Arte secreta" : "Arte normal");
     const foil = override?.foil || (rarity.toLowerCase().includes("rare") ? "Prismático" : "Normal");
-    const image = override?.image || "";
+    // Fallback: monta URL de imagem a partir do setId quando a API falha
+    const knownSetId = collectionIds[setName] || collectionIds[displayNameToEnglish[setName] || ""] || "";
+    const image = override?.image || (knownSetId ? `https://images.pokemontcg.io/${knownSetId}/${numberValue}.png` : "");
     const isSecret = rarity === "Secret Rare" || index % 11 === 0 || index === actualTotal - 1;
 
     return {
@@ -1587,16 +1653,18 @@ async function fetchSetCards(setName) {
     return collectionCatalog[setName];
   }
 
-  const setId = collectionIds[setName];
+  // Resolve nomes em português para o nome em inglês usado nas chaves de collectionIds
+  const resolvedSetName = collectionIds[setName] ? setName : (displayNameToEnglish[setName] || setName);
+  const setId = collectionIds[resolvedSetName];
   if (!setId) {
-    const fallbackCards = buildSetCards(setName, getSetCardTotal(setName));
+    const fallbackCards = buildSetCards(resolvedSetName, getSetCardTotal(resolvedSetName));
     collectionCatalog[setName] = fallbackCards;
     return fallbackCards;
   }
 
   try {
-    if (setName === "Base Set") {
-      const cards = buildSetCards(setName, 102);
+    if (resolvedSetName === "Base Set") {
+      const cards = buildSetCards(resolvedSetName, 102);
       collectionCatalog[setName] = cards;
       return cards;
     }
@@ -1607,10 +1675,10 @@ async function fetchSetCards(setName) {
     }
 
     const payload = await response.json();
-    const cards = (payload.data || []).map((card) => formatApiCard(card, setName));
+    const cards = (payload.data || []).map((card) => formatApiCard(card, resolvedSetName));
 
     if (!cards.length) {
-      const fallbackCards = buildSetCards(setName, getSetCardTotal(setName));
+      const fallbackCards = buildSetCards(resolvedSetName, getSetCardTotal(resolvedSetName));
       collectionCatalog[setName] = fallbackCards;
       return fallbackCards;
     }
@@ -1618,7 +1686,7 @@ async function fetchSetCards(setName) {
     collectionCatalog[setName] = cards;
     return cards;
   } catch (error) {
-    const fallbackCards = buildSetCards(setName, getSetCardTotal(setName));
+    const fallbackCards = buildSetCards(resolvedSetName, getSetCardTotal(resolvedSetName));
     collectionCatalog[setName] = fallbackCards;
     return fallbackCards;
   }
@@ -2155,7 +2223,13 @@ function findCardByQuery(cards, searchTerm, setName = null) {
     const nameValue = normalizeTextSearchValue(item.name);
     const rarityValue = normalizeTextSearchValue(item.rarity);
 
-    return (normalizedTerm && numberValue.includes(normalizedTerm))
+    // Busca por número: usa equivalência estrita para evitar falsos positivos por substring
+    const isNumberFormat = normalizedTerm.includes("/");
+    const numberMatches = isNumberFormat
+      ? isCardNumberEquivalent(item.number, searchTerm)
+      : (normalizedTerm && numberValue.includes(normalizedTerm));
+
+    return numberMatches
       || (normalizedTextTerm && (nameValue.includes(normalizedTextTerm) || rarityValue.includes(normalizedTextTerm)));
   });
 }
@@ -2164,41 +2238,50 @@ function findNumberSearchMatches(searchTerm) {
   const exactSearchTerm = normalizeExactCardNumber(searchTerm);
   if (!exactSearchTerm) return [];
 
-  const normalizedSearchTerm = normalizeCardSearchValue(exactSearchTerm);
   const scopeSets = state.selectedCollection ? [state.selectedCollection] : worldCollections;
-  const matches = [];
-  const seen = new Set();
 
-  const addMatch = (setName, card) => {
-    if (!card || !card.number) return;
-    const cardNumber = normalizeExactCardNumber(card.number);
-    const isExactNumberMatch = cardNumber === exactSearchTerm;
-    const isEquivalentNumberMatch = Boolean(
-      exactSearchTerm.includes("/")
-      && cardNumber.includes("/")
-      && !isExactNumberMatch
-      && normalizeCardNumberForComparison(cardNumber) === normalizeCardNumberForComparison(exactSearchTerm)
-    );
-    if (!isExactNumberMatch && !isEquivalentNumberMatch) return;
+  const buildMatches = (allowEquivalent) => {
+    const matches = [];
+    const seen = new Set();
 
-    const key = `${setName}:${card.id || card.number}`;
-    if (seen.has(key)) return;
-    seen.add(key);
+    const addMatch = (setName, card) => {
+      if (!card || !card.number) return;
+      const cardNumber = normalizeExactCardNumber(card.number);
+      const isExact = cardNumber === exactSearchTerm;
+      const isEquivalent = allowEquivalent && Boolean(
+        exactSearchTerm.includes("/")
+        && cardNumber.includes("/")
+        && !isExact
+        && normalizeCardNumberForComparison(cardNumber) === normalizeCardNumberForComparison(exactSearchTerm)
+      );
+      if (!isExact && !isEquivalent) return;
 
-    matches.push({ setName, card });
+      // Dedup por set+número normalizado para evitar duplicatas entre specialSetCards e buildSetCards
+      const key = `${setName}:${normalizeCardNumberForComparison(card.number) || card.number}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      matches.push({ setName, card });
+    };
+
+    const specialCard = getSpecialCardByExactNumber(null, exactSearchTerm);
+    if (specialCard) {
+      addMatch(specialCard.setName || specialCard.set || "Special", specialCard);
+    }
+
+    scopeSets.forEach((setName) => {
+      const cards = getCardsForSet(setName);
+      cards.forEach((card) => addMatch(setName, card));
+    });
+
+    return matches;
   };
 
-  const specialCard = getSpecialCardByExactNumber(null, exactSearchTerm);
-  if (specialCard) {
-    addMatch(specialCard.setName || specialCard.set || "Special", specialCard);
-  }
+  // Passo 1: busca exata — preserva distinção entre "21/25" e "021/025"
+  const exactMatches = buildMatches(false);
+  if (exactMatches.length) return exactMatches;
 
-  scopeSets.forEach((setName) => {
-    const cards = getCardsForSet(setName);
-    cards.forEach((card) => addMatch(setName, card));
-  });
-
-  return matches;
+  // Passo 2: equivalência sem zeros (ex: "3/130" encontra "003/130")
+  return buildMatches(true);
 }
 
 function getCardSearchMatch(searchTerm) {
@@ -3093,6 +3176,8 @@ async function searchCardAndOpenModal() {
   }
 
   switchToSetsForSearch();
+  // Garante que buscas numéricas sempre percorram todas as coleções
+  state.selectedCollection = null;
 
   const extractedNumberSearch = extractCardNumberQuery(searchTerm);
   const numberSearchTerm = extractedNumberSearch || searchTerm;
@@ -3100,7 +3185,15 @@ async function searchCardAndOpenModal() {
   const isLiteralNumberPattern = Boolean(extractedNumberSearch && /[A-Za-z]/.test(extractedNumberSearch));
   let matchedCard = null;
 
+  // Verifica correspondência exata em specialExactNumberCards antes de qualquer API
   if (isNumberSearch) {
+    const specialExact = getSpecialCardByExactSearchTerm(currentSearchValue);
+    if (specialExact) {
+      matchedCard = specialExact;
+    }
+  }
+
+  if (isNumberSearch && !matchedCard) {
     const officialNumberMatches = await searchOfficialCardByExactNumber(numberSearchTerm);
     if (requestId !== latestSearchRequestId) return;
 
